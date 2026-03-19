@@ -1,0 +1,961 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Educadata | Dashboard territorial</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --bg: #edf3f2;
+            --surface: #ffffff;
+            --surface-muted: #f6faf9;
+            --surface-strong: #dce9e6;
+            --ink: #11202c;
+            --ink-soft: #42606f;
+            --line: #c3d5d2;
+            --accent: #0b6e69;
+            --accent-strong: #084f4b;
+            --accent-soft: #d9eeeb;
+            --highlight: #b24c2f;
+            --highlight-soft: #f7e0d7;
+            --success: #1c7c54;
+            --warning: #8d3f1d;
+            --shadow: 0 20px 45px rgba(17, 32, 44, 0.08);
+            --radius-xl: 28px;
+            --radius-lg: 22px;
+            --radius-md: 16px;
+        }
+
+        * { box-sizing: border-box; }
+        html, body { min-height: 100%; margin: 0; }
+        body {
+            font-family: "Avenir Next", "Segoe UI", sans-serif;
+            color: var(--ink);
+            background:
+                radial-gradient(circle at top left, rgba(11, 110, 105, 0.12), transparent 24%),
+                radial-gradient(circle at right 18%, rgba(178, 76, 47, 0.10), transparent 18%),
+                linear-gradient(180deg, #f8fbfa 0%, var(--bg) 100%);
+        }
+
+        .app-shell {
+            max-width: 1580px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+
+        .layout {
+            display: grid;
+            grid-template-columns: minmax(300px, 360px) minmax(0, 1fr);
+            gap: 20px;
+            align-items: start;
+        }
+
+        .sidebar {
+            position: sticky;
+            top: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+
+        .panel {
+            background: var(--surface);
+            border: 1px solid var(--line);
+            border-radius: var(--radius-xl);
+            box-shadow: var(--shadow);
+        }
+
+        .hero {
+            padding: 24px;
+            background:
+                linear-gradient(160deg, rgba(8, 79, 75, 0.96), rgba(11, 110, 105, 0.92)),
+                linear-gradient(180deg, #0b6e69, #084f4b);
+            color: #f8fffe;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .hero::after {
+            content: "";
+            position: absolute;
+            width: 180px;
+            height: 180px;
+            right: -36px;
+            top: -28px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .eyebrow {
+            margin: 0 0 10px;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            font-size: 0.76rem;
+            color: rgba(248, 255, 254, 0.74);
+        }
+
+        h1, h2, h3, p {
+            margin-top: 0;
+        }
+
+        h1 {
+            font-family: "Gill Sans", "Avenir Next Condensed", sans-serif;
+            font-size: clamp(2rem, 3vw, 3.2rem);
+            line-height: 0.95;
+            margin-bottom: 14px;
+            max-width: 8ch;
+        }
+
+        .lead {
+            color: rgba(248, 255, 254, 0.88);
+            line-height: 1.6;
+            margin-bottom: 18px;
+            max-width: 34ch;
+        }
+
+        .hero-status {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 12px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .status-card {
+            padding: 14px;
+            border-radius: 18px;
+            background: rgba(255, 255, 255, 0.12);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+        }
+
+        .status-card span {
+            display: block;
+            font-size: 0.78rem;
+            color: rgba(248, 255, 254, 0.72);
+            margin-bottom: 6px;
+        }
+
+        .status-card strong {
+            font-size: 1rem;
+            line-height: 1.35;
+        }
+
+        .section {
+            padding: 20px;
+        }
+
+        .section-title {
+            font-size: 0.82rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--ink-soft);
+            margin-bottom: 14px;
+        }
+
+        .field {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-bottom: 14px;
+        }
+
+        label {
+            font-size: 0.92rem;
+            color: var(--ink-soft);
+        }
+
+        select {
+            width: 100%;
+            border-radius: 14px;
+            border: 1px solid var(--line);
+            padding: 12px 14px;
+            font: inherit;
+            color: var(--ink);
+            background: var(--surface-muted);
+        }
+
+        select:focus,
+        .service-chip:focus {
+            outline: 3px solid rgba(11, 110, 105, 0.24);
+            outline-offset: 2px;
+        }
+
+        .notes {
+            color: var(--ink-soft);
+            line-height: 1.6;
+            font-size: 0.94rem;
+        }
+
+        .notes p:last-child {
+            margin-bottom: 0;
+        }
+
+        .main {
+            display: grid;
+            gap: 20px;
+        }
+
+        .topbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 20px;
+            padding: 4px 2px;
+        }
+
+        .topbar-copy h2 {
+            font-family: "Gill Sans", "Avenir Next Condensed", sans-serif;
+            font-size: clamp(1.8rem, 3vw, 2.8rem);
+            margin-bottom: 10px;
+        }
+
+        .topbar-copy p {
+            margin: 0;
+            max-width: 62ch;
+            color: var(--ink-soft);
+            line-height: 1.6;
+        }
+
+        .topbar-badges {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+
+        .badge {
+            padding: 12px 16px;
+            border-radius: 999px;
+            background: var(--surface);
+            border: 1px solid var(--line);
+            color: var(--ink);
+            font-weight: 600;
+            box-shadow: var(--shadow);
+            white-space: nowrap;
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 16px;
+        }
+
+        .summary-card {
+            padding: 18px;
+            border-radius: var(--radius-lg);
+            background: var(--surface);
+            border: 1px solid var(--line);
+            box-shadow: var(--shadow);
+        }
+
+        .summary-card.accent {
+            background: linear-gradient(180deg, #f4fbfa, #e8f5f2);
+        }
+
+        .summary-card.highlight {
+            background: linear-gradient(180deg, #fff8f4, #fbeee8);
+        }
+
+        .summary-label {
+            display: block;
+            font-size: 0.82rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--ink-soft);
+            margin-bottom: 10px;
+        }
+
+        .summary-value {
+            font-size: clamp(1.4rem, 2vw, 2rem);
+            font-weight: 700;
+            line-height: 1.05;
+            margin-bottom: 8px;
+        }
+
+        .summary-note {
+            color: var(--ink-soft);
+            line-height: 1.5;
+            font-size: 0.94rem;
+            margin: 0;
+        }
+
+        .map-card {
+            padding: 18px;
+        }
+
+        .detail-grid {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) minmax(320px, 1fr);
+            gap: 20px;
+        }
+
+        .map-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 12px;
+            margin-bottom: 14px;
+        }
+
+        .map-header p {
+            color: var(--ink-soft);
+            line-height: 1.5;
+            margin: 8px 0 0;
+        }
+
+        #map {
+            height: min(66vh, 720px);
+            min-height: 420px;
+            border-radius: 22px;
+            overflow: hidden;
+            border: 1px solid var(--line);
+        }
+
+        .stack {
+            display: grid;
+            gap: 20px;
+        }
+
+        .detail-card,
+        .indicator-card {
+            padding: 20px;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .card-header p {
+            margin: 6px 0 0;
+            color: var(--ink-soft);
+        }
+
+        .selection-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            border-radius: 999px;
+            background: var(--accent-soft);
+            color: var(--accent-strong);
+            font-weight: 700;
+            font-size: 0.88rem;
+        }
+
+        .empty {
+            color: var(--ink-soft);
+            line-height: 1.6;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th,
+        td {
+            text-align: left;
+            padding: 12px 8px;
+            border-bottom: 1px solid var(--line);
+            vertical-align: top;
+        }
+
+        th {
+            font-size: 0.78rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--ink-soft);
+        }
+
+        td {
+            font-size: 0.96rem;
+        }
+
+        .up { color: var(--warning); font-weight: 700; }
+        .down { color: var(--success); font-weight: 700; }
+
+        .service-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 14px;
+        }
+
+        .service-chip {
+            border: 1px solid var(--line);
+            background: var(--surface-muted);
+            color: var(--ink);
+            border-radius: 999px;
+            padding: 10px 14px;
+            cursor: pointer;
+            font: inherit;
+            font-weight: 600;
+        }
+
+        .service-chip.active {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: #ffffff;
+        }
+
+        .service-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 12px;
+        }
+
+        .service-card {
+            border-radius: 18px;
+            border: 1px solid var(--line);
+            padding: 14px;
+            background: var(--surface-muted);
+        }
+
+        .service-card.muted {
+            background: #f8f3ef;
+        }
+
+        .service-card strong {
+            display: block;
+            margin-bottom: 8px;
+            color: var(--ink-soft);
+            font-size: 0.84rem;
+        }
+
+        .service-meta {
+            margin-bottom: 14px;
+            line-height: 1.5;
+            color: var(--ink-soft);
+        }
+
+        .service-meta b {
+            color: var(--ink);
+        }
+
+        .service-note {
+            margin-top: 14px;
+            color: var(--ink-soft);
+            line-height: 1.6;
+            font-size: 0.92rem;
+        }
+
+        .service-chart-wrap {
+            margin-top: 18px;
+            padding: 16px;
+            border-radius: 20px;
+            background: var(--surface-muted);
+            border: 1px solid var(--line);
+        }
+
+        .service-chart-wrap canvas {
+            max-width: 240px;
+            max-height: 240px;
+            margin: 0 auto;
+            display: block;
+        }
+
+        .tooltip-table {
+            min-width: 320px;
+            color: var(--ink);
+        }
+
+        .tooltip-table h3 {
+            margin: 0 0 10px;
+            font-size: 1rem;
+            color: var(--accent-strong);
+        }
+
+        .tooltip-table td {
+            padding: 5px 4px;
+            border-bottom: 1px solid #dde7e4;
+            font-size: 0.82rem;
+        }
+
+        .leaflet-tooltip {
+            border-radius: 14px;
+            border: 1px solid var(--line);
+            box-shadow: var(--shadow);
+        }
+
+        @media (max-width: 1260px) {
+            .summary-grid,
+            .detail-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .sidebar {
+                position: static;
+            }
+        }
+
+        @media (max-width: 960px) {
+            .layout,
+            .summary-grid,
+            .hero-status,
+            .service-grid,
+            .detail-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .topbar {
+                flex-direction: column;
+            }
+
+            .topbar-badges {
+                justify-content: flex-start;
+            }
+
+            .app-shell {
+                padding: 16px;
+            }
+
+            #map {
+                min-height: 360px;
+                height: 54vh;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-shell">
+        <div class="layout">
+            <aside class="sidebar">
+                <section class="panel hero">
+                    <p class="eyebrow">Educadata</p>
+                    <h1>Dashboard territorial de media superior</h1>
+                    <p class="lead">Visualiza cobertura, absorcion, abandono y peso por servicio educativo con una lectura clara por entidad y ciclo escolar.</p>
+                    <div class="hero-status">
+                        <div class="status-card">
+                            <span>Base activa</span>
+                            <strong>{{ database_name }}</strong>
+                        </div>
+                        <div class="status-card">
+                            <span>Entidad seleccionada</span>
+                            <strong id="selected-entity">Ninguna</strong>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="panel section">
+                    <h2 class="section-title">Filtros</h2>
+                    <div class="field">
+                        <label for="cycle-select">Ciclo escolar</label>
+                        <select id="cycle-select">
+                            {% for cycle in available_cycles %}
+                                <option value="{{ cycle }}" {% if cycle == default_cycle %}selected{% endif %}>{{ cycle }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="field">
+                        <label for="service-select">Servicio destacado</label>
+                        <select id="service-select">
+                            {% for service in available_services %}
+                                <option value="{{ service.code }}">{{ service.code }} | {{ service.label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="service-list" id="service-chips"></div>
+                </section>
+
+                <section class="panel section">
+                    <h2 class="section-title">Contexto metodologico</h2>
+                    <div class="notes">
+                        <p>Los indicadores nacionales se calculan como promedio simple entre las 32 entidades para el ciclo seleccionado.</p>
+                        <p>Los servicios se agregan a partir de <code>planteles</code> y <code>matricula_plantel_ciclo</code> con la <code>sigla</code> disponible en la fuente.</p>
+                        <p>El GeoJSON de Mexico se sirve desde <code>/static/data/mexicoHigh.json</code>, por lo que la geometria base no depende de otra descarga en navegador.</p>
+                    </div>
+                </section>
+            </aside>
+
+            <main class="main">
+                <section class="topbar">
+                    <div class="topbar-copy">
+                        <p class="eyebrow" style="color: var(--accent); margin-bottom: 8px;">Panorama nacional</p>
+                        <h2>Seguimiento de acceso y permanencia</h2>
+                        <p>El diseño prioriza contraste alto, jerarquia clara y lectura rapida para sesiones de analisis operativo en escritorio o movil.</p>
+                    </div>
+                    <div class="topbar-badges">
+                        <div class="badge">Ciclo activo: <span id="active-cycle">{{ default_cycle }}</span></div>
+                        <div class="badge">Estado activo: <span id="active-state">Ninguno</span></div>
+                    </div>
+                </section>
+
+                <section class="summary-grid">
+                    <article class="summary-card accent">
+                        <span class="summary-label">Cobertura nacional</span>
+                        <div class="summary-value" id="summary-coverage">-</div>
+                        <p class="summary-note">Promedio simple del indicador de cobertura por entidad para el ciclo activo.</p>
+                    </article>
+                    <article class="summary-card">
+                        <span class="summary-label">Absorcion nacional</span>
+                        <div class="summary-value" id="summary-absorption">-</div>
+                        <p class="summary-note">Sirve para detectar presion de ingreso al nivel medio superior.</p>
+                    </article>
+                    <article class="summary-card highlight">
+                        <span class="summary-label">Matricula del servicio</span>
+                        <div class="summary-value" id="summary-service-students">-</div>
+                        <p class="summary-note" id="summary-service-label">Selecciona un servicio para ver su peso nacional.</p>
+                    </article>
+                    <article class="summary-card">
+                        <span class="summary-label">Entidades con dato</span>
+                        <div class="summary-value" id="summary-entities">-</div>
+                        <p class="summary-note">Cobertura territorial disponible en la API del dashboard.</p>
+                    </article>
+                </section>
+
+                <section class="panel map-card">
+                    <div class="map-header">
+                        <div>
+                            <p class="section-title">Mapa interactivo</p>
+                            <h3 style="margin-bottom: 0;">Comparativo territorial por entidad</h3>
+                            <p>Haz clic en cualquier estado para activar sus indicadores y el resumen de servicio.</p>
+                        </div>
+                        <div class="selection-pill">Seleccion: <span id="selection-pill-value">Ninguna</span></div>
+                    </div>
+                    <div id="map"></div>
+                </section>
+
+                <section class="detail-grid">
+                    <div class="stack">
+                        <section class="panel indicator-card">
+                            <div class="card-header">
+                                <div>
+                                    <p class="section-title">Indicadores</p>
+                                    <h3 style="margin-bottom: 0;">Entidad vs promedio nacional</h3>
+                                </div>
+                            </div>
+                            <div id="indicators-content" class="empty">Haz clic en un estado del mapa para ver indicadores y comparativo nacional.</div>
+                        </section>
+                    </div>
+
+                    <div class="stack">
+                        <section class="panel detail-card">
+                            <div class="card-header">
+                                <div>
+                                    <p class="section-title">Servicio educativo</p>
+                                    <h3 style="margin-bottom: 0;">Composicion y participacion</h3>
+                                    <p id="service-detail-subtitle">Selecciona una entidad para desplegar el resumen del servicio activo.</p>
+                                </div>
+                            </div>
+                            <div id="service-detail-content" class="empty">Selecciona un estado en el mapa para ver el resumen por servicio.</div>
+                            <div class="service-chart-wrap">
+                                <canvas id="service-chart" hidden></canvas>
+                            </div>
+                        </section>
+                    </div>
+                </section>
+            </main>
+        </div>
+    </div>
+
+    <script>
+        const state = {
+            cycle: "{{ default_cycle }}",
+            data: null,
+            selectedEntityKey: null,
+            selectedService: document.getElementById("service-select").value,
+            chart: null,
+            layers: new Map(),
+        };
+
+        const map = L.map("map", { zoomControl: true }).setView([24, -102], 5.4);
+        L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", {
+            attribution: "&copy; OpenStreetMap, &copy; CartoDB",
+        }).addTo(map);
+
+        const baseStyle = {
+            color: "#ffffff",
+            weight: 1,
+            fillColor: "#8fb6ae",
+            fillOpacity: 0.9,
+        };
+
+        const activeStyle = {
+            color: "#ffffff",
+            weight: 1.6,
+            fillColor: "#b24c2f",
+            fillOpacity: 0.96,
+        };
+
+        function normalizeName(value) {
+            return value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().replace(/[.'"]/g, "").replace(/\s+/g, " ").trim();
+        }
+
+        function formatNumber(value) {
+            return new Intl.NumberFormat("es-MX").format(value || 0);
+        }
+
+        function formatPercent(value) {
+            return `${Number(value || 0).toFixed(1)}%`;
+        }
+
+        function compareArrow(localValue, nationalValue) {
+            if (localValue > nationalValue) return '<span class="up">↑</span>';
+            if (localValue < nationalValue) return '<span class="down">↓</span>';
+            return "•";
+        }
+
+        function tooltipHtml(entity) {
+            const services = Object.values(entity.services || {}).sort((a, b) => b.alumnos - a.alumnos);
+            const rows = services.length
+                ? services.map((service) => `
+                    <tr>
+                        <td>${service.code}</td>
+                        <td>${formatNumber(service.alumnos)}</td>
+                        <td>${formatNumber(service.docentes)}</td>
+                        <td>${formatNumber(service.escuelas)}</td>
+                    </tr>
+                `).join("")
+                : '<tr><td colspan="4">Sin datos</td></tr>';
+            return `
+                <div class="tooltip-table">
+                    <h3>${entity.name}</h3>
+                    <table>
+                        <thead>
+                            <tr><td>Servicio</td><td>Alumnos</td><td>Docentes</td><td>Escuelas</td></tr>
+                        </thead>
+                        <tbody>${rows}</tbody>
+                    </table>
+                </div>
+            `;
+        }
+
+        function getSelectedEntity() {
+            if (!state.selectedEntityKey || !state.data) return null;
+            return Object.values(state.data.entities).find((entity) => entity.entity_key === state.selectedEntityKey) || null;
+        }
+
+        function renderOverview() {
+            const national = state.data?.national_indicators || {};
+            const nationalService = state.data?.national_services?.[state.selectedService] || null;
+            const entitiesCount = Object.keys(state.data?.entities || {}).length;
+
+            document.getElementById("summary-coverage").textContent = formatPercent(national.cobertura);
+            document.getElementById("summary-absorption").textContent = formatPercent(national.absorcion);
+            document.getElementById("summary-service-students").textContent = nationalService ? formatNumber(nationalService.alumnos) : "-";
+            document.getElementById("summary-service-label").textContent = nationalService
+                ? `Matricula nacional agregada para ${state.selectedService}.`
+                : "Selecciona un servicio para ver su peso nacional.";
+            document.getElementById("summary-entities").textContent = formatNumber(entitiesCount);
+        }
+
+        function renderIndicators() {
+            const container = document.getElementById("indicators-content");
+            const selected = getSelectedEntity();
+            if (!selected) {
+                container.innerHTML = '<div class="empty">Haz clic en un estado del mapa para ver indicadores y comparativo nacional.</div>';
+                return;
+            }
+            const indicators = selected.indicators || {};
+            const national = state.data.national_indicators || {};
+            const rows = [
+                ["Cobertura", "cobertura"],
+                ["Tasa de absorcion", "absorcion"],
+                ["Tasa de abandono", "abandono"],
+                ["Tasa de reprobacion", "reprobacion"],
+                ["Tasa neta de escolarizacion", "escolarizacion"],
+                ["Tasa de terminacion", "terminacion"],
+            ].map(([label, key]) => `
+                <tr>
+                    <td>${label}</td>
+                    <td>${formatPercent(indicators[key])}</td>
+                    <td>${formatPercent(national[key])}</td>
+                    <td>${compareArrow(indicators[key] || 0, national[key] || 0)}</td>
+                </tr>
+            `).join("");
+            container.innerHTML = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Indicador</th>
+                            <th>${selected.name}</th>
+                            <th>Nacional</th>
+                            <th>Comp.</th>
+                        </tr>
+                    </thead>
+                    <tbody>${rows}</tbody>
+                </table>
+            `;
+        }
+
+        function renderServiceChips() {
+            const wrap = document.getElementById("service-chips");
+            const selected = getSelectedEntity();
+            if (!selected) {
+                wrap.innerHTML = "";
+                return;
+            }
+            const chips = Object.values(selected.services || {})
+                .sort((a, b) => b.alumnos - a.alumnos)
+                .map((service) => `
+                    <button class="service-chip ${state.selectedService === service.code ? "active" : ""}" data-service="${service.code}">
+                        ${service.code}
+                    </button>
+                `)
+                .join("");
+            wrap.innerHTML = chips || '<div class="empty">Sin servicios para esta entidad.</div>';
+            wrap.querySelectorAll(".service-chip").forEach((button) => {
+                button.addEventListener("click", () => {
+                    state.selectedService = button.dataset.service;
+                    document.getElementById("service-select").value = state.selectedService;
+                    renderOverview();
+                    renderServiceChips();
+                    renderServiceDetail();
+                });
+            });
+        }
+
+        function renderServiceDetail() {
+            const container = document.getElementById("service-detail-content");
+            const chartEl = document.getElementById("service-chart");
+            const subtitle = document.getElementById("service-detail-subtitle");
+            const selected = getSelectedEntity();
+            if (!selected) {
+                subtitle.textContent = "Selecciona una entidad para desplegar el resumen del servicio activo.";
+                container.innerHTML = "Selecciona un estado en el mapa para ver el resumen por servicio.";
+                chartEl.hidden = true;
+                if (state.chart) state.chart.destroy();
+                return;
+            }
+            const service = selected.services?.[state.selectedService] || Object.values(selected.services || {})[0];
+            if (!service) {
+                subtitle.textContent = `${selected.name} no tiene datos agregados para el servicio activo en este ciclo.`;
+                container.innerHTML = "La entidad seleccionada no tiene servicios agregados para este ciclo.";
+                chartEl.hidden = true;
+                if (state.chart) state.chart.destroy();
+                return;
+            }
+            state.selectedService = service.code;
+            subtitle.textContent = `Resumen de ${service.code} en ${selected.name}.`;
+            const national = state.data.national_services?.[service.code] || { alumnos: 0, mujeres: 0, hombres: 0, docentes: 0, escuelas: 0 };
+            const participation = national.alumnos ? ((service.alumnos / national.alumnos) * 100) : 0;
+            const womenShare = service.alumnos ? ((service.mujeres / service.alumnos) * 100) : 0;
+            const menShare = service.alumnos ? ((service.hombres / service.alumnos) * 100) : 0;
+            container.innerHTML = `
+                <div class="service-meta"><b>${service.code}</b> | ${service.label}</div>
+                <div class="service-grid">
+                    <div class="service-card"><strong>Matricula estatal</strong>${formatNumber(service.alumnos)}</div>
+                    <div class="service-card"><strong>Participacion nacional</strong>${formatPercent(participation)}</div>
+                    <div class="service-card"><strong>Docentes</strong>${formatNumber(service.docentes)}</div>
+                    <div class="service-card"><strong>Escuelas</strong>${formatNumber(service.escuelas)}</div>
+                    <div class="service-card"><strong>Mujeres</strong>${formatNumber(service.mujeres)} | ${formatPercent(womenShare)}</div>
+                    <div class="service-card"><strong>Hombres</strong>${formatNumber(service.hombres)} | ${formatPercent(menShare)}</div>
+                    <div class="service-card muted"><strong>Con discapacidad</strong>Sin dato en esta fuente</div>
+                    <div class="service-card muted"><strong>Poblacion indigena</strong>Sin dato en esta fuente</div>
+                </div>
+                <div class="service-note">La fuente actual importada desde Excel no incluye atributos de discapacidad o pertenencia indigena. El dashboard deja visible ese hueco para conectar una fuente futura sin redisenar la vista.</div>
+            `;
+            chartEl.hidden = false;
+            if (state.chart) state.chart.destroy();
+            state.chart = new Chart(chartEl.getContext("2d"), {
+                type: "doughnut",
+                data: {
+                    labels: [selected.name, "Resto del pais"],
+                    datasets: [{
+                        data: [service.alumnos, Math.max(national.alumnos - service.alumnos, 0)],
+                        backgroundColor: ["#0b6e69", "#d5e4e1"],
+                        borderColor: ["#0b6e69", "#d5e4e1"],
+                        borderWidth: 0,
+                    }],
+                },
+                options: {
+                    plugins: {
+                        legend: {
+                            position: "bottom",
+                            labels: {
+                                color: "#11202c",
+                                font: { size: 12 },
+                            },
+                        },
+                    },
+                    cutout: "64%",
+                },
+            });
+            renderOverview();
+        }
+
+        function updateSelection(nameKey) {
+            const entity = state.data.entities[nameKey];
+            if (!entity) return;
+            state.selectedEntityKey = entity.entity_key;
+            document.getElementById("active-state").textContent = entity.name;
+            document.getElementById("selected-entity").textContent = entity.name;
+            document.getElementById("selection-pill-value").textContent = entity.name;
+            renderIndicators();
+            renderServiceChips();
+            renderServiceDetail();
+            state.layers.forEach((layer, key) => layer.setStyle(key === nameKey ? activeStyle : baseStyle));
+        }
+
+        async function loadMapData() {
+            const response = await fetch(`/api/map-data/?ciclo=${encodeURIComponent(state.cycle)}`);
+            state.data = await response.json();
+            document.getElementById("active-cycle").textContent = state.data.cycle;
+            if (state.selectedEntityKey) {
+                const selected = getSelectedEntity();
+                if (!selected) {
+                    state.selectedEntityKey = null;
+                    document.getElementById("active-state").textContent = "Ninguno";
+                    document.getElementById("selected-entity").textContent = "Ninguna";
+                    document.getElementById("selection-pill-value").textContent = "Ninguna";
+                }
+            }
+            renderOverview();
+            renderIndicators();
+            renderServiceChips();
+            renderServiceDetail();
+            state.layers.forEach((layer, key) => {
+                const entity = state.data.entities[key];
+                layer.unbindTooltip();
+                layer.bindTooltip(entity ? tooltipHtml(entity) : "<strong>Sin datos</strong>", { sticky: true });
+            });
+        }
+
+        document.getElementById("cycle-select").addEventListener("change", async (event) => {
+            state.cycle = event.target.value;
+            await loadMapData();
+        });
+
+        document.getElementById("service-select").addEventListener("change", (event) => {
+            state.selectedService = event.target.value;
+            renderOverview();
+            renderServiceChips();
+            renderServiceDetail();
+        });
+
+        fetch("/static/data/mexicoHigh.json")
+            .then((response) => response.json())
+            .then((geojson) => {
+                L.geoJSON(geojson, {
+                    style: baseStyle,
+                    onEachFeature: (feature, layer) => {
+                        const key = normalizeName(feature.properties.name);
+                        state.layers.set(key, layer);
+                        layer.on("click", () => updateSelection(key));
+                        layer.on("mouseover", function () {
+                            if (state.selectedEntityKey !== state.data?.entities?.[key]?.entity_key) {
+                                this.setStyle(activeStyle);
+                            }
+                        });
+                        layer.on("mouseout", function () {
+                            if (state.selectedEntityKey !== state.data?.entities?.[key]?.entity_key) {
+                                this.setStyle(baseStyle);
+                            }
+                        });
+                    },
+                }).addTo(map);
+                return loadMapData();
+            })
+            .catch((error) => {
+                document.getElementById("indicators-content").innerHTML = `<div class="empty">No se pudo cargar el mapa: ${error}</div>`;
+            });
+    </script>
+</body>
+</html>
