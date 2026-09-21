@@ -55,3 +55,8 @@ htmlcov/
 .DS_Store
 .idea/
 .vscode/
+
+# Respaldos locales y capturas
+backups/
+.codex-*.png
+.codex-run/

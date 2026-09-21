@@ -119,3 +119,12 @@ Comando previsto:
 ./educadata_env/bin/python manage.py import_educadata \
   --path "/Users/azaelcupa/Downloads/Bases filtros_EducaData_040326_eiol.xlsx"
 ```
+
+Para reemplazar un ciclo puntual sin dejar registros obsoletos:
+
+```bash
+./educadata_env/bin/python manage.py import_educadata \
+  --path "/Users/azaelcupa/Downloads/Ciclo 2024-2025.xlsx" \
+  --cycle 2024-2025 \
+  --replace-cycles
+```

@@ -1,32 +1,43 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Educadata | Dashboard territorial</title>
+    <link rel="icon" type="image/png" href="{% static 'assets/img/favicon/DGB_EducaDta_favicon.png' %}">
+    <link rel="apple-touch-icon" href="{% static 'assets/img/favicon/DGB_EducaDta_favicon.png' %}">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/three@0.166.1/build/three.min.js"></script>
+   
     <style>
         :root {
-            --bg: #edf3f2;
+            --bg: #f5f2ee;
             --surface: #ffffff;
-            --surface-muted: #f6faf9;
-            --surface-strong: #dce9e6;
-            --ink: #11202c;
-            --ink-soft: #42606f;
-            --line: #c3d5d2;
-            --accent: #0b6e69;
-            --accent-strong: #084f4b;
-            --accent-soft: #d9eeeb;
-            --highlight: #b24c2f;
-            --highlight-soft: #f7e0d7;
+            --surface-muted: #faf8f5;
+            --surface-strong: #ece6df;
+            --ink: #2a2630;
+            --ink-soft: #6b6570;
+            --line: #ddd3ca;
+            --accent: #7a1f37;
+            --accent-strong: #5f1529;
+            --accent-soft: #f1e2e7;
+            --highlight: #b48a2c;
+            --highlight-soft: #f6edda;
             --success: #1c7c54;
-            --warning: #8d3f1d;
-            --shadow: 0 20px 45px rgba(17, 32, 44, 0.08);
+            --warning: #9d5b25;
+            --shadow: 0 18px 40px rgba(50, 38, 48, 0.08);
             --radius-xl: 28px;
             --radius-lg: 22px;
             --radius-md: 16px;
+            --gov-header-offset: 86px;
+            --filters-sticky-offset: calc(var(--gov-header-offset) + 16px);
+        }
+
+        body.header-bar-hidden {
+            --filters-sticky-offset: calc(var(--gov-header-offset) - 12px);
         }
 
         * { box-sizing: border-box; }
@@ -35,9 +46,254 @@
             font-family: "Avenir Next", "Segoe UI", sans-serif;
             color: var(--ink);
             background:
-                radial-gradient(circle at top left, rgba(11, 110, 105, 0.12), transparent 24%),
-                radial-gradient(circle at right 18%, rgba(178, 76, 47, 0.10), transparent 18%),
-                linear-gradient(180deg, #f8fbfa 0%, var(--bg) 100%);
+                radial-gradient(circle at top left, rgba(122, 31, 55, 0.10), transparent 24%),
+                radial-gradient(circle at right 18%, rgba(180, 138, 44, 0.11), transparent 18%),
+                linear-gradient(180deg, #fbf8f5 0%, var(--bg) 100%);
+        }
+
+        #header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 86px;
+            z-index: 1035;
+            background: linear-gradient(180deg, #7a1f37, #6a1930);
+            border-bottom: 1px solid rgba(212, 193, 156, 0.3);
+            box-shadow: 0 10px 24px rgba(50, 38, 48, 0.12);
+        }
+
+        .franja-gob-inner {
+            width: 100%;
+            max-width: 1170px;
+            height: 86px;
+            margin: 0 auto;
+            padding: 0 16px;
+            display: flex;
+            align-items: center;
+        }
+
+        .franja-gob-row {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+        }
+
+        .franja-gob-brand {
+            display: flex;
+            align-items: center;
+            color: #ffffff;
+            text-decoration: none;
+        }
+
+        .franja-gob-logo {
+            display: block;
+            width: 127px;
+            height: auto;
+            max-width: 100%;
+        }
+
+        #header a {
+            color: inherit;
+            font-size: 16px;
+            font-weight: 300;
+            text-align: center;
+            text-decoration: none;
+        }
+
+        .franja-gob-links {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 15px;
+            color: #ffffff;
+        }
+
+        .franja-gob-links a {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 36px;
+            padding: 4px 8px;
+            border-radius: 4px;
+            transition: background-color 0.2s ease, color 0.2s ease;
+        }
+
+        .franja-gob-links a:hover {
+            background-color: #7a1f3d;
+            color: #d4c19c;
+        }
+
+        .franja-gob-search svg {
+            width: 22px;
+            height: 22px;
+            display: block;
+            fill: currentColor;
+        }
+
+        #header-spacer {
+            height: var(--gov-header-offset);
+        }
+
+        .institutional-bar,
+        .footer-band {
+            background: linear-gradient(180deg, #7a1f37, #6a1930);
+            color: #f8f0f2;
+        }
+
+        .institutional-bar {
+            background: #ffffff;
+            color: var(--ink);
+            border-bottom: 4px solid #c7a55b;
+        }
+
+        .institutional-inner {
+            max-width: 1170px;
+            margin: 0 auto;
+            padding: 14px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 18px;
+        }
+
+        .footer-inner {
+            max-width: 1580px;
+            margin: 0 auto;
+            padding: 14px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 18px;
+        }
+
+        .brand-lockup {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            min-width: 0;
+        }
+
+        .institutional-logo {
+            display: block;
+            width: 200px;
+            max-width: 100%;
+            height: auto;
+        }
+
+        .brand-copy strong,
+        .footer-brand strong {
+            display: block;
+            font-size: 1rem;
+        }
+
+        .brand-copy span,
+        .footer-brand span {
+            display: block;
+            font-size: 0.84rem;
+            color: rgba(248, 240, 242, 0.8);
+        }
+
+        .top-links {
+            display: flex;
+            gap: 18px;
+            font-size: 0.88rem;
+            color: var(--ink-soft);
+        }
+
+        .top-links a,
+        .top-links span {
+            color: inherit;
+            text-decoration: none;
+        }
+
+        .session-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            justify-content: flex-end;
+            flex-wrap: wrap;
+        }
+
+        .session-actions form {
+            margin: 0;
+        }
+
+        .session-user-card {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            min-width: 0;
+            min-height: 48px;
+            padding: 6px 14px 6px 6px;
+            border: 1px solid rgba(122, 31, 55, 0.16);
+            border-radius: 999px;
+            background: linear-gradient(135deg, #ffffff 0%, #fbf6ec 100%);
+            box-shadow: 0 12px 28px rgba(50, 38, 48, 0.1);
+        }
+
+        .session-user-avatar {
+            width: 36px;
+            height: 36px;
+            flex: 0 0 36px;
+            display: grid;
+            place-items: center;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--accent), var(--highlight));
+            color: #ffffff;
+            font-weight: 800;
+            line-height: 1;
+            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.35);
+        }
+
+        .session-user-copy {
+            display: grid;
+            gap: 2px;
+            min-width: 0;
+        }
+
+        .session-user-label {
+            font-size: 0.68rem;
+            font-weight: 800;
+            letter-spacing: 0.08em;
+            line-height: 1;
+            text-transform: uppercase;
+            color: var(--accent);
+        }
+
+        .session-user-name {
+            max-width: 220px;
+            overflow: hidden;
+            color: var(--ink);
+            font-size: 0.96rem;
+            font-weight: 800;
+            line-height: 1.15;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .logout-button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 42px;
+            padding: 0 18px;
+            border: 1px solid rgba(122, 31, 55, 0.14);
+            border-radius: 999px;
+            background: var(--surface);
+            color: var(--accent);
+            font: inherit;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+        }
+
+        .logout-button:hover {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: #ffffff;
         }
 
         .app-shell {
@@ -48,17 +304,18 @@
 
         .layout {
             display: grid;
-            grid-template-columns: minmax(300px, 360px) minmax(0, 1fr);
+            grid-template-columns: minmax(280px, 320px) minmax(0, 1fr);
             gap: 20px;
             align-items: start;
         }
 
         .sidebar {
             position: sticky;
-            top: 24px;
+            top: calc(var(--gov-header-offset) + 24px);
             display: flex;
             flex-direction: column;
             gap: 18px;
+            align-self: start;
         }
 
         .panel {
@@ -68,25 +325,151 @@
             box-shadow: var(--shadow);
         }
 
+        .filters-panel {
+            position: relative;
+            top: auto;
+            z-index: 1100;
+        }
+
+        .filters-panel label {
+            color: rgba(248, 255, 254, 0.82);
+        }
+
+        .filters-panel select {
+            background: rgba(255, 255, 255, 0.12);
+            border-color: rgba(255, 255, 255, 0.16);
+            color: #ffffff;
+        }
+
+        .filters-panel select option {
+            color: var(--ink);
+        }
+
+        .filters-panel .service-chip {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.16);
+            color: #ffffff;
+        }
+
+        .filters-panel .service-chip.active {
+            background: #ffffff;
+            border-color: #ffffff;
+            color: var(--accent-strong);
+        }
+
+        .filter-actions {
+            display: flex;
+            justify-content: flex-end;
+            margin-top: 6px;
+            width: 100%;
+        }
+
+        .filters-toggle {
+            display: none;
+            width: 100%;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            background: rgba(255, 255, 255, 0.08);
+            color: #ffffff;
+            border-radius: 16px;
+            padding: 12px 14px;
+            font: inherit;
+            font-weight: 700;
+            cursor: pointer;
+            margin-bottom: 10px;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+        }
+
+        .filters-toggle span:last-child {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .filters-toggle span {
+            pointer-events: none;
+        }
+
+        .filters-body {
+            display: block;
+        }
+
+        .filter-notice {
+            margin-top: 12px;
+            padding: 12px 14px;
+            border-radius: 16px;
+            background: rgba(255, 255, 255, 0.14);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            color: rgba(248, 255, 254, 0.92);
+            line-height: 1.5;
+            font-size: 0.88rem;
+        }
+
+        .filter-notice[hidden] {
+            display: none;
+        }
+
+        .reset-button {
+            border: 1px solid rgba(255, 255, 255, 0.82);
+            background: #ffffff;
+            color: #2f3d52;
+            border-radius: 999px;
+            padding: 10px 12px;
+            font: inherit;
+            font-weight: 700;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 52px;
+        }
+
+        .reset-button:hover {
+            background: #eef3f8;
+        }
+
+        .reset-button svg {
+            width: 18px;
+            height: 18px;
+            flex: 0 0 auto;
+        }
+
+        .reset-button.is-resetting svg {
+            animation: reset-spin 0.7s linear infinite;
+            transform-origin: 50% 50%;
+        }
+
+        @keyframes reset-spin {
+            from {
+                transform: rotate(0deg);
+            }
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
+
         .hero {
             padding: 24px;
             background:
-                linear-gradient(160deg, rgba(8, 79, 75, 0.96), rgba(11, 110, 105, 0.92)),
-                linear-gradient(180deg, #0b6e69, #084f4b);
+                linear-gradient(160deg, rgba(57, 73, 96, 0.98), rgba(72, 91, 119, 0.94)),
+                linear-gradient(180deg, #394960, #2f3d52);
             color: #f8fffe;
             overflow: hidden;
             position: relative;
-        }
-
-        .hero::after {
-            content: "";
-            position: absolute;
-            width: 180px;
-            height: 180px;
-            right: -36px;
-            top: -28px;
-            border-radius: 50%;
-            background: rgba(255, 255, 255, 0.08);
         }
 
         .eyebrow {
@@ -127,20 +510,24 @@
         .status-card {
             padding: 14px;
             border-radius: 18px;
-            background: rgba(255, 255, 255, 0.12);
-            border: 1px solid rgba(255, 255, 255, 0.18);
+            background: #611232;
+            border: 1px solid rgba(255, 255, 255, 0.14);
         }
 
         .status-card span {
             display: block;
             font-size: 0.78rem;
-            color: rgba(248, 255, 254, 0.72);
+            color: rgba(255, 255, 255, 0.82);
             margin-bottom: 6px;
         }
 
         .status-card strong {
+            display: block;
             font-size: 1rem;
             line-height: 1.35;
+            color: #ffffff;
+            overflow-wrap: anywhere;
+            word-break: break-word;
         }
 
         .section {
@@ -195,7 +582,14 @@
 
         .main {
             display: grid;
-            gap: 20px;
+            gap: 12px;
+        }
+
+        .rail {
+            position: sticky;
+            top: 24px;
+            display: grid;
+            gap: 14px;
         }
 
         .topbar {
@@ -252,11 +646,11 @@
         }
 
         .summary-card.accent {
-            background: linear-gradient(180deg, #f4fbfa, #e8f5f2);
+            background: linear-gradient(180deg, #faf0f3, #f5e2e8);
         }
 
         .summary-card.highlight {
-            background: linear-gradient(180deg, #fff8f4, #fbeee8);
+            background: linear-gradient(180deg, #fbf7ea, #f4ecd5);
         }
 
         .summary-label {
@@ -283,13 +677,14 @@
         }
 
         .map-card {
-            padding: 18px;
+            padding: 24px;
         }
 
         .detail-grid {
             display: grid;
-            grid-template-columns: minmax(0, 1fr) minmax(320px, 1fr);
-            gap: 20px;
+            grid-template-columns: 1fr;
+            gap: 12px;
+            align-items: start;
         }
 
         .map-header {
@@ -300,6 +695,13 @@
             margin-bottom: 14px;
         }
 
+        .map-header-meta {
+            margin-left: auto;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+        }
+
         .map-header p {
             color: var(--ink-soft);
             line-height: 1.5;
@@ -307,11 +709,132 @@
         }
 
         #map {
-            height: min(66vh, 720px);
-            min-height: 420px;
+            height: min(68vh, 780px);
+            min-height: 560px;
             border-radius: 22px;
             overflow: hidden;
             border: 1px solid var(--line);
+        }
+
+        .map-viewport {
+            position: relative;
+        }
+
+        .map-hover-card {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            z-index: 500;
+            width: min(460px, calc(100% - 32px));
+            max-height: calc(100% - 32px);
+            overflow: auto;
+            border-radius: 14px;
+            border: 1px solid var(--line);
+            box-shadow: var(--shadow);
+            background: rgba(255, 255, 255, 0.96);
+            padding: 10px;
+            pointer-events: none;
+        }
+
+        .map-hover-card.corner-top-right {
+            top: 16px;
+            right: 16px;
+            bottom: auto;
+            left: auto;
+        }
+
+        .map-hover-card.corner-bottom-left {
+            top: auto;
+            right: auto;
+            bottom: 16px;
+            left: 16px;
+        }
+
+        .map-hover-card[hidden] {
+            display: none;
+        }
+
+        .mobile-map-card {
+            display: none;
+            margin-top: 14px;
+            padding: 16px;
+            border-radius: 18px;
+            border: 1px solid var(--line);
+            background: var(--surface-muted);
+            max-width: 100%;
+            overflow: hidden;
+        }
+
+        .mobile-map-card[hidden] {
+            display: none;
+        }
+
+        .mobile-map-card h4 {
+            margin: 0 0 10px;
+            font-size: 1rem;
+            color: var(--accent-strong);
+        }
+
+        .mobile-map-card .tooltip-table {
+            display: block;
+            width: 100%;
+            min-width: 0;
+            max-width: 100%;
+            overflow-x: hidden;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .mobile-map-card .tooltip-table table {
+            width: 100%;
+            min-width: 0;
+            table-layout: fixed;
+        }
+
+        .mobile-map-card .tooltip-table th,
+        .mobile-map-card .tooltip-table td {
+            white-space: nowrap;
+        }
+
+        .mobile-map-card .tooltip-table td {
+            padding: 4px 2px;
+            font-size: 0.68rem;
+        }
+
+        .mobile-map-card .tooltip-table .col-service {
+            width: 34%;
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .mobile-map-card .tooltip-table tbody td:not(.col-service) {
+            width: 22%;
+            min-width: 0;
+            text-align: left;
+        }
+
+        .mobile-map-card .tooltip-table thead td,
+        .mobile-map-card .tooltip-table tbody td.col-service {
+            text-align: left;
+        }
+
+        .mobile-map-card .tooltip-table thead td {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            font-size: 0.66rem;
+        }
+
+
+        .map-source {
+            margin-top: 14px;
+            color: var(--ink-soft);
+            font-size: 0.84rem;
+            line-height: 1.5;
+        }
+
+        .map-source strong {
+            color: var(--ink);
         }
 
         .stack {
@@ -322,6 +845,278 @@
         .detail-card,
         .indicator-card {
             padding: 20px;
+            min-width: 0;
+            overflow: hidden;
+        }
+
+        .indicator-compare {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 16px;
+        }
+
+        .indicator-compare-header,
+        .indicator-compare-row {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 14px;
+            align-items: start;
+        }
+
+        .indicator-compare-header {
+            display: none;
+        }
+
+        .indicator-compare-row {
+            border: 1px solid var(--line);
+            background:
+                linear-gradient(180deg, rgba(255, 255, 255, 0.88), rgba(246, 241, 235, 0.96)),
+                linear-gradient(135deg, rgba(122, 31, 55, 0.05), rgba(57, 73, 96, 0.08));
+            border-radius: 22px;
+            padding: 18px;
+            box-shadow: 0 14px 30px rgba(50, 38, 48, 0.08);
+        }
+
+        .indicator-compare-label {
+            min-width: 0;
+            display: grid;
+            gap: 6px;
+        }
+
+        .indicator-compare-label strong {
+            display: block;
+            margin: 0;
+            font-size: 1.08rem;
+            line-height: 1.3;
+            color: var(--ink);
+        }
+
+        .indicator-compare-label span {
+            color: var(--ink-soft);
+            font-size: 0.86rem;
+        }
+
+        .indicator-compare-note {
+            display: block;
+            color: var(--warning);
+            font-size: 0.72rem;
+            line-height: 1.45;
+        }
+
+        .indicator-compare-metric,
+        .indicator-compare-values {
+            display: grid;
+            gap: 10px;
+            min-width: 0;
+        }
+
+        .indicator-compare-metric {
+            padding: 14px;
+            border-radius: 18px;
+            background: rgba(255, 255, 255, 0.78);
+            border: 1px solid rgba(122, 31, 55, 0.08);
+            width: 100%;
+        }
+
+        .indicator-compare-gap-card {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            align-items: baseline;
+            padding: 0;
+            background: transparent;
+            border: 0;
+        }
+
+        .indicator-compare-gap-card span {
+            color: var(--ink-soft);
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .indicator-compare-gap-card strong {
+            color: var(--ink);
+            font-size: 1.02rem;
+            font-weight: 800;
+            margin-left: auto;
+            text-align: right;
+            white-space: normal;
+            overflow-wrap: anywhere;
+        }
+
+        .indicator-compare-top {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            align-items: baseline;
+            flex-wrap: wrap;
+        }
+
+        .indicator-compare-top span {
+            color: var(--ink-soft);
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .indicator-compare-top strong {
+            color: var(--ink);
+            font-size: 1.02rem;
+            font-weight: 800;
+            white-space: normal;
+            overflow-wrap: anywhere;
+        }
+
+        .indicator-compare-values {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 10px;
+        }
+
+        .indicator-compare-value {
+            display: grid;
+            gap: 6px;
+            align-items: start;
+            padding: 12px 14px;
+            border-radius: 16px;
+            border: 1px solid rgba(96, 116, 143, 0.12);
+            background: rgba(255, 255, 255, 0.72);
+        }
+
+        .indicator-bar-track {
+            width: 100%;
+            height: 10px;
+            border-radius: 999px;
+            background: #ded5cc;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .indicator-bar-fill {
+            height: 100%;
+            border-radius: inherit;
+        }
+
+        .indicator-bar-fill.state {
+            background: linear-gradient(90deg, #7a1f37, #b44d69);
+        }
+
+        .indicator-bar-fill.national {
+            background: linear-gradient(90deg, #60748f, #8da4bf);
+        }
+
+        .indicator-bar-combined {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .indicator-bar-panel {
+            display: grid;
+            gap: 6px;
+            min-width: 0;
+        }
+
+        .indicator-bar-panel span {
+            color: var(--ink-soft);
+            font-size: 0.78rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+
+        .indicator-bar-value {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            gap: 10px;
+            padding: 4px 0 0;
+            flex-wrap: wrap;
+        }
+
+        .indicator-bar-value strong {
+            color: var(--ink);
+            font-size: 1rem;
+            font-weight: 800;
+            white-space: normal;
+            overflow-wrap: anywhere;
+        }
+
+        .indicator-compare-legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px 14px;
+            margin-top: 2px;
+            color: var(--ink-soft);
+            font-size: 0.8rem;
+        }
+
+        .indicator-compare-legend span {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .indicator-compare-legend i {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 999px;
+            flex: 0 0 auto;
+        }
+
+        .indicator-compare-legend .national {
+            background: #60748f;
+        }
+
+        .indicator-compare-legend .state {
+            background: #7a1f37;
+        }
+
+        .indicator-foot {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            padding-top: 6px;
+            border-top: 1px solid var(--line);
+            font-size: 0.9rem;
+            color: var(--ink-soft);
+        }
+
+        .indicator-delta {
+            font-weight: 800;
+        }
+
+        .indicator-delta.positive {
+            color: var(--warning);
+        }
+
+        .indicator-delta.negative {
+            color: var(--success);
+        }
+
+        .indicator-disclaimer {
+            padding: 16px 18px;
+            border-radius: 18px;
+            border: 1px solid rgba(122, 31, 55, 0.12);
+            background: rgba(248, 243, 239, 0.92);
+            color: var(--ink-soft);
+            font-size: 0.88rem;
+            line-height: 1.6;
+        }
+
+        .indicator-disclaimer p {
+            margin: 0;
+        }
+
+        .indicator-disclaimer p + p {
+            margin-top: 8px;
+        }
+
+        .indicator-disclaimer strong {
+            color: var(--ink);
         }
 
         .card-header {
@@ -330,11 +1125,21 @@
             align-items: center;
             gap: 12px;
             margin-bottom: 16px;
+            min-width: 0;
         }
 
         .card-header p {
             margin: 6px 0 0;
             color: var(--ink-soft);
+            overflow-wrap: anywhere;
+        }
+
+        .card-header > div {
+            min-width: 0;
+        }
+
+        .card-header h3 {
+            overflow-wrap: anywhere;
         }
 
         .selection-pill {
@@ -349,6 +1154,141 @@
             font-size: 0.88rem;
         }
 
+        .kpi-card {
+            padding: 16px;
+            border-radius: 18px;
+            border: 1px solid var(--line);
+            background: var(--surface);
+            box-shadow: var(--shadow);
+        }
+
+        .kpi-card strong {
+            display: block;
+            margin-bottom: 8px;
+            color: var(--ink-soft);
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+
+        .kpi-value {
+            font-size: 2rem;
+            line-height: 1;
+            font-weight: 800;
+            color: var(--accent-strong);
+            margin-bottom: 6px;
+        }
+
+        .kpi-note {
+            color: var(--ink-soft);
+            line-height: 1.45;
+            font-size: 0.86rem;
+            margin: 0;
+        }
+
+        .gauge-section {
+            padding: 18px;
+        }
+
+        .gauge-grid {
+            display: grid;
+            grid-template-columns: repeat(5, minmax(110px, 1fr));
+            gap: 14px;
+        }
+
+        .gauge-card {
+            border: 1px solid var(--line);
+            background: var(--surface-muted);
+            border-radius: 18px;
+            padding: 14px;
+            text-align: center;
+            min-width: 0;
+        }
+
+        .gauge-arc {
+            --value: 0;
+            width: min(100%, 138px);
+            aspect-ratio: 138 / 74;
+            height: auto;
+            margin: 0 auto 8px;
+            border-radius: 138px 138px 0 0;
+            background:
+                radial-gradient(circle at 50% 100%, var(--surface-muted) 0 58%, transparent 59%),
+                conic-gradient(from 180deg, var(--accent) calc((var(--value) / 100) * 180deg), #d7cdc4 0);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .gauge-arc::after {
+            content: attr(data-value);
+            position: absolute;
+            left: 50%;
+            bottom: 6px;
+            transform: translateX(-50%);
+            font-size: 1.1rem;
+            font-weight: 800;
+            color: var(--accent-strong);
+        }
+
+        .gauge-label {
+            font-size: 0.82rem;
+            font-weight: 700;
+            color: var(--ink-soft);
+            min-height: 2.4em;
+        }
+
+        .insight-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 16px;
+        }
+
+        .insight-card {
+            padding: 18px;
+            border-radius: 18px;
+            border: 1px solid var(--line);
+            background: var(--surface);
+            box-shadow: var(--shadow);
+        }
+
+        .insight-card.wide {
+            grid-column: span 2;
+        }
+
+        .mini-list {
+            display: grid;
+            gap: 10px;
+            margin-top: 12px;
+        }
+
+        .mini-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 12px;
+            font-size: 0.92rem;
+            color: var(--ink-soft);
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--line);
+            min-width: 0;
+        }
+
+        .mini-row span,
+        .mini-row strong {
+            min-width: 0;
+            overflow-wrap: anywhere;
+        }
+
+        .mini-row span {
+            flex: 0 0 44%;
+        }
+
+        .mini-row strong {
+            flex: 1 1 auto;
+            text-align: right;
+            color: var(--ink);
+        }
+
         .empty {
             color: var(--ink-soft);
             line-height: 1.6;
@@ -357,6 +1297,14 @@
         table {
             width: 100%;
             border-collapse: collapse;
+        }
+
+        .indicator-card table {
+            min-width: 520px;
+        }
+
+        .indicator-card {
+            overflow-x: auto;
         }
 
         th,
@@ -414,7 +1362,7 @@
         .service-card {
             border-radius: 18px;
             border: 1px solid var(--line);
-            padding: 14px;
+            padding: 16px;
             background: var(--surface-muted);
         }
 
@@ -425,14 +1373,310 @@
         .service-card strong {
             display: block;
             margin-bottom: 8px;
+            color: var(--ink);
+            font-size: 1.12rem;
+            font-weight: 700;
+            line-height: 1.3;
+            text-align: left;
+        }
+
+        .service-card.featured {
+            background: var(--surface-muted);
+            border: 1px solid var(--line);
+            box-shadow: var(--shadow);
+        }
+
+        .service-card.wide {
+            grid-column: span 2;
+        }
+
+        .service-card.full-row {
+            grid-column: 1 / -1;
+        }
+
+        .service-mini-grid {
+            grid-column: 1 / -1;
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 10px;
+        }
+
+        .service-big-number {
+            font-size: 2rem;
+            line-height: 1;
+            font-weight: 800;
+            color: #394960;
+            margin-bottom: 10px;
+        }
+
+        .service-subline {
             color: var(--ink-soft);
-            font-size: 0.84rem;
+            font-size: 0.9rem;
+            line-height: 1.5;
+            margin-bottom: 12px;
+        }
+
+        .service-gender-chart {
+            max-width: 168px;
+            max-height: 168px;
+            margin: 0 auto;
+            display: block;
+            align-self: center;
+            width: min(100%, 168px);
+        }
+
+        .service-gender-legend {
+            display: grid;
+            gap: 6px;
+            margin-top: 10px;
+            justify-content: center;
+            color: var(--ink-soft);
+            font-size: 0.82rem;
+            line-height: 1.35;
+            text-align: center;
+        }
+
+        .service-gender-legend span {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            min-width: 0;
+        }
+
+        .service-gender-legend i {
+            width: 10px;
+            height: 10px;
+            border-radius: 999px;
+            flex: 0 0 auto;
+        }
+
+        .service-chart-tooltip {
+            position: fixed;
+            z-index: 9999;
+            pointer-events: none;
+            opacity: 0;
+            transform: translate(-50%, calc(-100% - 12px));
+            max-width: min(320px, calc(100vw - 24px));
+            padding: 10px 12px;
+            border-radius: 10px;
+            background: rgba(17, 32, 44, 0.96);
+            color: #fff;
+            font-size: 0.82rem;
+            line-height: 1.35;
+            box-shadow: 0 12px 28px rgba(17, 32, 44, 0.24);
+            transition: opacity 120ms ease;
+            white-space: normal;
+        }
+
+        .service-chart-tooltip span {
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+        }
+
+        .service-chart-tooltip i {
+            width: 10px;
+            height: 10px;
+            margin-top: 4px;
+            border-radius: 999px;
+            flex: 0 0 auto;
+        }
+
+        .service-featured-body {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 16px;
+            align-items: stretch;
+        }
+
+        .service-featured-body.plsep-layout {
+            grid-template-columns: repeat(2, minmax(220px, 1fr));
+        }
+
+        .service-featured-body .service-card {
+            height: 100%;
+        }
+
+        .service-metric-card {
+            align-self: stretch;
+        }
+
+        .service-coverage-card {
+            margin-top: 0;
+            align-self: stretch;
+            width: 100%;
+        }
+
+        .service-coverage-card strong {
+            margin-bottom: 10px;
+        }
+
+        .service-split {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 10px;
+            margin-bottom: 14px;
+        }
+
+        .service-split-item {
+            display: block;
+            padding: 16px;
+            border-radius: 18px;
+            background: #f8f3ef;
+            border: 1px solid var(--line);
+            box-shadow: none;
+        }
+
+        .service-mini-grid .service-card {
+            padding: 16px;
+            border-radius: 18px;
+            background: #f8f3ef;
+            border: 1px solid var(--line);
+            box-shadow: none;
+        }
+
+        .service-mini-grid .service-card.half-span {
+            grid-column: span 2;
+        }
+
+        .service-mini-grid .service-card .service-big-number {
+            margin-bottom: 0;
+        }
+
+        .service-mini-grid .service-split-item {
+            display: block;
+        }
+
+        .service-mini-grid .service-split-item span {
+            display: block;
+            margin-bottom: 6px;
+            font-size: 0.9rem;
+        }
+
+        .service-mini-grid .service-split-item .service-footnote {
+            margin-top: 8px;
+        }
+
+        .service-split-item.stack {
+            display: block;
+        }
+
+        .service-card.featured.wide .service-split-item {
+            display: block;
+        }
+
+        .service-split-item span {
+            display: block;
+            color: var(--ink-soft);
+            font-size: 0.9rem;
+            margin-bottom: 6px;
+        }
+
+        .service-split-item.stack span {
+            margin-bottom: 6px;
+        }
+
+        .service-card.featured.wide .service-split-item span {
+            margin-bottom: 6px;
+            font-size: 0.9rem;
+        }
+
+        .service-split-item strong {
+            display: block;
+            margin: 0 0 8px;
+            font-size: 1.12rem;
+            color: var(--ink);
+            text-align: left;
+            white-space: nowrap;
+        }
+
+        .service-split-item.stack strong {
+            text-align: left;
+        }
+
+        .service-card.featured.wide .service-split-item strong {
+            text-align: left;
+            font-size: 1.12rem;
+        }
+
+        .progress-card-value {
+            display: grid;
+            gap: 6px;
+            margin-bottom: 8px;
+        }
+
+        .progress-card-value b {
+            font-size: 1.6rem;
+            line-height: 1;
+            color: var(--accent-strong);
+            display: block;
+        }
+
+        .progress-card-value span {
+            color: var(--ink-soft);
+            font-size: 0.86rem;
+            line-height: 1.4;
+            overflow-wrap: anywhere;
+        }
+
+        .progress-track {
+            width: 100%;
+            height: 12px;
+            border-radius: 999px;
+            background: #e2dad2;
+            overflow: hidden;
+            margin-bottom: 10px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            border-radius: inherit;
+        }
+
+        .progress-fill.accent {
+            background: linear-gradient(90deg, #7a1f37, #b44d69);
+        }
+
+        .progress-fill.steel {
+            background: linear-gradient(90deg, #4a698f, #87a7c9);
+        }
+
+        .progress-fill.gold {
+            background: linear-gradient(90deg, #9d7a29, #d4b360);
+        }
+
+        .service-footnote {
+            color: var(--ink-soft);
+            font-size: 0.86rem;
+            line-height: 1.5;
+        }
+
+        .service-footnote-mobile-break {
+            display: none;
+        }
+
+        .service-footnote strong {
+            display: inline;
+            margin: 0;
+            font-size: 0.86rem;
+            line-height: 1.5;
+            white-space: normal;
+        }
+
+        .service-card.featured.wide .service-split-item .service-footnote strong {
+            display: inline;
+            margin: 0;
+            font-size: 0.86rem;
+            line-height: 1.5;
+            white-space: normal;
         }
 
         .service-meta {
             margin-bottom: 14px;
             line-height: 1.5;
             color: var(--ink-soft);
+            overflow-wrap: anywhere;
         }
 
         .service-meta b {
@@ -446,19 +1690,301 @@
             font-size: 0.92rem;
         }
 
+        .service-note strong {
+            color: var(--ink);
+        }
+
         .service-chart-wrap {
-            margin-top: 18px;
+            display: grid;
+            grid-template-columns: minmax(0, 1fr);
+            gap: 12px;
+            margin-top: 0;
             padding: 16px;
             border-radius: 20px;
             background: var(--surface-muted);
             border: 1px solid var(--line);
         }
 
-        .service-chart-wrap canvas {
-            max-width: 240px;
-            max-height: 240px;
+        .service-chart-visual {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 0;
+        }
+
+        .service-chart-table {
+            min-width: 0;
+        }
+
+        .service-chart-wrap.single-service-layout {
+            grid-template-columns: minmax(0, 1fr);
+            padding-top: 8px;
+            padding-bottom: 8px;
+            gap: 8px;
+        }
+
+        .service-chart-wrap.single-service-layout .service-chart-visual #service-chart {
+            max-width: 100%;
+            margin-top: 20px;
+            margin-bottom: -55px;
+            height: 90px;
+            min-height: 90px;
+        }
+
+        .service-chart-wrap.single-service-layout .service-chart-table {
+            width: 100%;
+            margin-top: 0;
+        }
+
+        .service-chart-wrap.single-service-layout .chart-summary {
+            margin-top: 0;
+        }
+
+        .service-chart-wrap.single-service-layout .bars3d-title {
+            display: none;
+        }
+
+        .service-chart-visual #service-chart {
+            width: 100%;
+            max-width: 680px;
+            height: 360px;
+            min-height: 280px;
             margin: 0 auto;
             display: block;
+        }
+
+        .service-chart-visual #service-chart.percent-bars {
+            max-width: 960px;
+        }
+
+        .service-chart-visual #service-chart.compact-bars {
+            height: auto;
+            min-height: 0;
+        }
+
+        .service-chart-visual #service-chart.compact-bars .bars3d {
+            height: auto;
+            gap: 8px;
+            padding: 0;
+        }
+
+        .bars3d {
+            display: grid;
+            gap: 12px;
+            height: 100%;
+            padding: 6px 2px 6px 0;
+        }
+
+        .bars3d-title {
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: var(--ink);
+            margin: 0 0 8px;
+        }
+
+        .bars3d-row {
+            display: grid;
+            grid-template-columns: 68px minmax(0, 1fr) 116px;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .bars3d.percent-bars {
+            width: 100%;
+        }
+
+        .bars3d.percent-bars .bars3d-row {
+            grid-template-columns: 68px minmax(0, 1fr) 50px;
+            gap: 6px;
+        }
+
+        .bars3d-label {
+            font-size: 0.82rem;
+            font-weight: 700;
+            color: #11202c;
+            text-align: right;
+        }
+
+        .bars3d-track {
+            height: 18px;
+            border-radius: 8px;
+            background: #e6e0d8;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .bars3d-bar {
+            height: 100%;
+            border-radius: 7px;
+            transform: none;
+            box-shadow: none;
+            transition: width 500ms ease;
+        }
+
+        .bars3d-value {
+            font-size: 0.8rem;
+            color: #304250;
+            text-align: right;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .bars3d.percent-bars .bars3d-value {
+            color: var(--ink);
+            font-weight: 400;
+        }
+
+        .bars3d-extra {
+            display: block;
+            margin-top: 2px;
+            color: var(--ink-soft);
+            font-size: 0.72rem;
+            line-height: 1.3;
+        }
+
+        .chart-summary {
+            display: grid;
+            gap: 10px;
+            margin-top: 0;
+        }
+
+        .chart-accordion-item {
+            border: 1px solid var(--line);
+            border-radius: 16px;
+            background: rgba(255, 255, 255, 0.72);
+            overflow: hidden;
+        }
+
+        .chart-accordion-summary {
+            list-style: none;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 16px;
+            cursor: pointer;
+            color: var(--ink-soft);
+            font-size: 0.92rem;
+            position: relative;
+        }
+
+        .chart-accordion-summary::after {
+            content: "";
+            flex: 0 0 auto;
+            width: 10px;
+            height: 10px;
+            border-right: 2px solid rgba(39, 28, 37, 0.5);
+            border-bottom: 2px solid rgba(39, 28, 37, 0.5);
+            transform: rotate(45deg);
+            transition: transform 0.2s ease, border-color 0.2s ease;
+            margin-left: 8px;
+        }
+
+        .chart-accordion-summary.static-summary::after {
+            border-color: transparent;
+            opacity: 0;
+        }
+
+        .chart-accordion-summary::-webkit-details-marker {
+            display: none;
+        }
+
+        .chart-accordion-item[open] .chart-accordion-summary {
+            border-bottom: 1px solid var(--line);
+            background: rgba(248, 243, 239, 0.88);
+        }
+
+        .chart-accordion-item[open] .chart-accordion-summary::after {
+            transform: rotate(-135deg);
+            border-color: var(--accent-strong);
+        }
+
+        .chart-summary-label {
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            flex: 1 1 auto;
+            min-width: 0;
+            font-weight: 600;
+            color: var(--ink);
+        }
+
+        .chart-summary-code {
+            flex: 0 0 auto;
+        }
+
+        .chart-summary-service-name {
+            min-width: 0;
+            color: var(--ink-soft);
+            font-weight: 500;
+        }
+
+        .chart-summary-dot {
+            width: 18px;
+            height: 18px;
+            border-radius: 999px;
+            flex: 0 0 auto;
+            border: 2px solid rgba(255, 255, 255, 0.95);
+            box-shadow: 0 0 0 1px rgba(42, 38, 48, 0.14), 0 4px 10px rgba(42, 38, 48, 0.16);
+        }
+
+        .chart-summary-value {
+            flex: 0 0 140px;
+            margin-left: auto;
+            text-align: right;
+            white-space: nowrap;
+            color: var(--ink);
+            font-weight: 700;
+        }
+
+        .chart-accordion-panel {
+            display: grid;
+            gap: 10px;
+            padding: 14px 16px 16px;
+        }
+
+        .chart-accordion-row {
+            padding: 10px 12px;
+            border-radius: 12px;
+            background: #f8f3ef;
+            border: 1px solid var(--line);
+        }
+
+        .chart-accordion-row span {
+            display: block;
+            margin-bottom: 6px;
+            color: var(--ink-soft);
+            font-size: 0.82rem;
+        }
+
+        .chart-accordion-row strong {
+            color: var(--ink);
+            font-size: 1rem;
+        }
+
+        .chart-description-list {
+            display: grid;
+            gap: 10px;
+            margin-top: 14px;
+        }
+
+        .chart-description-item {
+            padding: 0;
+            border-radius: 16px;
+            background: rgba(255, 255, 255, 0.72);
+            border: 1px solid var(--line);
+            overflow: hidden;
+        }
+
+        @media (min-width: 992px) {
+            .service-chart-wrap {
+                grid-template-columns: minmax(220px, 4fr) minmax(0, 8fr);
+                align-items: center;
+            }
+
+            .service-chart-wrap.single-service-layout {
+                grid-template-columns: minmax(0, 1fr);
+                align-items: stretch;
+            }
         }
 
         .tooltip-table {
@@ -478,30 +2004,432 @@
             font-size: 0.82rem;
         }
 
+        .tooltip-table .col-right {
+            text-align: right;
+        }
+
         .leaflet-tooltip {
             border-radius: 14px;
             border: 1px solid var(--line);
             box-shadow: var(--shadow);
         }
 
+        .dgb-site-footer {
+            font-size: 16px;
+            margin-top: 28px;
+            margin-bottom: 0;
+            background: #611232;
+        }
+
+        .dgb-site-footer > :last-child {
+            margin-bottom: 0;
+        }
+
+        .dgb-footer-main {
+            background: #611232;
+            color: #fff;
+            font-family: "Noto Sans", "Noso Sans", serif, "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+            padding: 2.5rem 0 1.75rem;
+            margin-bottom: 0;
+            text-align: left;
+            font-size: 14px;
+        }
+
+        footer[role="contentinfo"] {
+            margin: 0;
+            padding: 0;
+            background: #611232;
+        }
+
+        .dgb-footer-main .footer-inner {
+            margin-left: auto;
+            margin-right: auto;
+            width: 100%;
+            max-width: 1170px;
+            padding: 0 16px;
+            display: block;
+        }
+
+        .dgb-footer-grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 28px;
+            align-items: start;
+        }
+
+        .dgb-footer-brand-col,
+        .dgb-footer-links-col,
+        .dgb-footer-about-col,
+        .dgb-footer-social-col {
+            min-width: 0;
+        }
+
+        .dgb-footer-logo {
+            max-width: 180px;
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        .dgb-footer-main .h5,
+        .dgb-footer-main h5,
+        .main-footer .h5,
+        .main-footer h5,
+        .dgb-footer-main h6 {
+            color: #fff;
+            font-weight: 600;
+            margin: 0 0 0.9rem;
+        }
+
+        .dgb-footer-main .h5,
+        .dgb-footer-main h5,
+        .main-footer .h5,
+        .main-footer h5 {
+            font-size: 18px;
+        }
+
+        .dgb-footer-main a {
+            color: #fff;
+            text-decoration: none;
+        }
+
+        .dgb-footer-main a:hover {
+            color: #d4c19c;
+        }
+
+        .dgb-footer-main a.dgb-footer-denuncia-link {
+            text-decoration: underline;
+        }
+
+        .dgb-footer-social-title {
+            margin-top: 20px;
+            margin-bottom: 20px;
+        }
+
+        .dgb-footer-main ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .dgb-footer-main .nav-list {
+            list-style: none;
+            margin: 0;
+            padding: 1px;
+            display: inline-block;
+        }
+
+        .dgb-footer-main .nav-list li a {
+            color: #fff;
+            height: 30px;
+            margin: 0;
+            font-size: 16px;
+            text-decoration: none;
+        }
+
+        .dgb-footer-main .nav-list > a {
+            color: #fff;
+            height: 30px;
+            margin: 0;
+            padding-left: 15px;
+            text-decoration: none;
+        }
+
+        .dgb-footer-main li + li {
+            margin-top: 0.55rem;
+        }
+
+        .dgb-footer-main .nav-list li + li {
+            margin-top: 8px;
+        }
+
+        .dgb-footer-main .dgb-footer-links-col a,
+        .dgb-footer-main .dgb-footer-about-col a,
+        .dgb-footer-main .dgb-footer-social-col a {
+            font-size: 16px;
+        }
+
+        .dgb-footer-main p {
+            margin: 0 0 0.75rem;
+            color: #fff;
+            line-height: 1.36;
+            font-size: 14px;
+        }
+
+        .dgb-footer-social {
+            display: flex;
+            gap: 10px;
+            margin-top: 0.75rem;
+        }
+
+        .dgb-footer-social li {
+            margin: 0;
+        }
+
+        .dgb-footer-social img {
+            display: block;
+            width: 32px;
+            height: 32px;
+        }
+
+        .logo-079 img {
+            display: block;
+            margin-top: 18px;
+            max-width: 180px;
+            width: 100%;
+            height: auto;
+        }
+
+        .dgb-footer-help-text {
+            display: none;
+        }
+
+        .dgb-footer-hotline {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            margin-top: 18px;
+        }
+
+        .dgb-footer-hotline .logo-079 {
+            flex: 0 0 auto;
+        }
+
+        .dgb-footer-hotline .logo-079 img {
+            margin-top: 0;
+            max-width: 250px;
+        }
+
+        .dgb-footer-accordion {
+            display: none;
+        }
+
+        .dgb-footer-accordion summary {
+            color: #fff;
+            cursor: pointer;
+            font-weight: 600;
+            list-style: none;
+            padding: 0.9rem 0;
+            position: relative;
+        }
+
+        .dgb-footer-accordion summary::-webkit-details-marker {
+            display: none;
+        }
+
+        .dgb-footer-accordion summary::after {
+            content: ">";
+            position: absolute;
+            right: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 1.45rem;
+            font-weight: 700;
+            line-height: 1;
+        }
+
+        .dgb-footer-accordion[open] summary::after {
+            transform: translateY(-50%) rotate(90deg);
+        }
+
+        .dgb-footer-accordion .dgb-footer-accordion-body {
+            padding-bottom: 0.5rem;
+        }
+
+        .dgb-footer-accordion-body ul,
+        .dgb-footer-desktop ul {
+            padding-left: 0;
+        }
+
+        .dgb-footer-accordion-body p {
+            margin-bottom: 0.75rem;
+        }
+
+        .dgb-footer-pleca {
+            background: #691c32;
+            line-height: 0;
+        }
+
+        .dgb-footer-pleca img {
+            display: block;
+            width: 100%;
+            height: auto;
+        }
+
+        @media (max-width: 1318px) and (min-width: 961px) {
+            .service-card.featured.wide .service-split-item {
+                min-width: 0;
+                padding: 14px;
+            }
+
+            .service-card.featured.wide .service-split-item strong {
+                font-size: 1rem;
+                line-height: 1.3;
+                white-space: normal;
+                overflow-wrap: anywhere;
+            }
+
+            .service-card.featured.wide .service-split-item .service-big-number {
+                font-size: 1.72rem;
+                line-height: 1.05;
+                overflow-wrap: anywhere;
+                word-break: break-word;
+            }
+
+            .service-card.featured.wide .service-split-item .service-footnote {
+                font-size: 0.82rem;
+            }
+        }
+
         @media (max-width: 1260px) {
             .summary-grid,
-            .detail-grid {
+            .insight-grid {
                 grid-template-columns: 1fr 1fr;
             }
 
+            .layout {
+                grid-template-columns: 1fr;
+            }
+
             .sidebar {
+                position: sticky;
+                top: calc(var(--filters-sticky-offset) + 20px);
+                z-index: 1100;
+            }
+
+            .gauge-grid {
+                grid-template-columns: repeat(3, minmax(110px, 1fr));
+            }
+
+            .rail {
                 position: static;
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+            }
+
+            .filters-panel {
+                padding: 14px;
+                position: sticky;
+                top: calc(var(--filters-sticky-offset) + 20px);
+            }
+
+            .filters-panel h2 {
+                font-size: 1.35rem;
+                margin-bottom: 10px;
+            }
+
+            .filters-panel .eyebrow {
+                display: none;
+            }
+
+            .filters-panel .lead {
+                display: none;
+            }
+
+            .filters-toggle {
+                display: flex;
+            }
+
+            .filters-body {
+                display: none;
+            }
+
+            .filters-panel.expanded .filters-body {
+                display: block;
+            }
+
+            .field {
+                gap: 6px;
+                margin-bottom: 10px;
+            }
+
+            .filters-panel select {
+                padding: 10px 12px;
+                border-radius: 12px;
+            }
+
+            .reset-button {
+                padding: 8px 12px;
+                font-size: 0.9rem;
+            }
+
+            .filter-notice {
+                margin-top: 10px;
+                padding: 10px 12px;
+                font-size: 0.82rem;
             }
         }
 
         @media (max-width: 960px) {
+            .franja-gob-inner {
+                padding: 0 12px;
+            }
+
+            .franja-gob-links {
+                gap: 8px;
+                font-size: 14px;
+                flex-wrap: wrap;
+                text-align: right;
+            }
+
             .layout,
             .summary-grid,
+            .insight-grid,
             .hero-status,
-            .service-grid,
-            .detail-grid {
+            .rail,
+            .service-grid {
                 grid-template-columns: 1fr;
+            }
+
+            .service-card.wide {
+                grid-column: auto;
+            }
+
+            .service-card.full-row {
+                grid-column: auto;
+            }
+
+            .service-mini-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
+            .service-mini-grid .service-card.half-span {
+                grid-column: span 1;
+            }
+
+            .service-split {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
+            .service-featured-body {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                align-items: stretch;
+            }
+
+            .service-featured-body.plsep-layout {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
+            .service-chart-visual #service-chart {
+                height: 280px;
+            }
+
+            .indicator-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .indicator-compare-row {
+                grid-template-columns: 1fr;
+                gap: 14px;
+            }
+
+            .sidebar {
+                position: sticky;
+                top: calc(var(--filters-sticky-offset) + 20px);
+                z-index: 1100;
+            }
+
+            .gauge-grid {
+                grid-template-columns: repeat(2, minmax(120px, 1fr));
             }
 
             .topbar {
@@ -516,110 +2444,493 @@
                 padding: 16px;
             }
 
+            .filters-panel {
+                top: auto;
+            }
+
             #map {
-                min-height: 360px;
-                height: 54vh;
+                min-height: 50vh;
+                height: 56vh;
+                max-height: 520px;
+            }
+
+            .detail-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .institutional-inner {
+                padding: 10px 16px;
+                flex-direction: row;
+                align-items: center;
+                gap: 0;
+            }
+
+            .session-actions {
+                gap: 8px;
+            }
+
+            .session-user-card {
+                max-width: min(48vw, 280px);
+            }
+
+            .session-user-name {
+                max-width: 150px;
+            }
+
+            .logout-button {
+                min-height: 38px;
+                padding: 0 14px;
+            }
+
+            .top-links {
+                gap: 12px;
+                flex-wrap: wrap;
+            }
+
+            .dgb-footer-main {
+                padding: 2rem 0 1.5rem;
+            }
+
+            .dgb-footer-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .insight-card.wide {
+                grid-column: auto;
+            }
+
+            .tooltip-table {
+                min-width: 220px;
+                max-width: min(72vw, 260px);
+            }
+
+            .tooltip-table td {
+                font-size: 0.74rem;
+            }
+
+            .mobile-map-card {
+                display: block;
+            }
+
+            .map-hover-card {
+                display: none !important;
+            }
+
+            .filters-panel {
+                top: auto;
             }
         }
+
+        @media (max-width: 460px) {
+            :root {
+                --gov-header-offset: 106px;
+            }
+
+            #header {
+                height: auto;
+                min-height: 86px;
+            }
+
+            .franja-gob-inner {
+                height: auto;
+                min-height: 86px;
+                padding-top: 10px;
+                padding-bottom: 10px;
+            }
+
+            .franja-gob-row {
+                align-items: flex-start;
+            }
+
+            .franja-gob-logo {
+                width: 116px;
+            }
+
+            .institutional-logo {
+                width: min(100%, 360px);
+            }
+
+            .institutional-inner {
+                align-items: flex-start;
+                flex-wrap: wrap;
+                gap: 12px;
+            }
+
+            .brand-lockup,
+            .session-actions {
+                flex: 1 1 100%;
+            }
+
+            .session-actions {
+                justify-content: space-between;
+            }
+
+            .session-user-card {
+                flex: 1 1 auto;
+                max-width: calc(100% - 134px);
+            }
+
+            .session-user-name {
+                max-width: 100%;
+            }
+
+            .indicator-compare-header {
+                display: none;
+            }
+
+            .indicator-compare-row {
+                grid-template-columns: 1fr;
+                padding: 14px;
+            }
+
+            .indicator-compare-values {
+                grid-template-columns: 1fr;
+            }
+
+            .dgb-footer-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .dgb-footer-desktop {
+                display: none;
+            }
+
+            .dgb-footer-accordion {
+                display: block;
+                border-top: 1px solid rgba(255, 255, 255, 0.2);
+            }
+
+            .dgb-footer-accordion summary {
+                position: relative;
+                padding-right: 28px;
+                font-size: 18px;
+                font-weight: 700;
+            }
+
+            .dgb-footer-brand-col {
+                padding-bottom: 4px;
+            }
+
+            .franja-gob-links {
+                font-size: 13px;
+            }
+
+            .gauge-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .service-mini-grid,
+            .service-split,
+            .service-featured-body {
+                grid-template-columns: 1fr;
+            }
+
+            .service-featured-body {
+                gap: 12px;
+                justify-items: stretch;
+            }
+
+            .service-featured-body.plsep-layout {
+                grid-template-columns: 1fr;
+                justify-items: stretch;
+            }
+
+            .service-gender-chart {
+                width: min(100%, 132px);
+                max-width: 132px;
+                max-height: 132px;
+            }
+
+            .service-featured-body.plsep-layout .service-gender-chart {
+                justify-self: center;
+            }
+
+            .service-featured-body.plsep-layout .service-coverage-card {
+                width: 100%;
+            }
+
+            .gauge-arc {
+                width: min(100%, 180px);
+            }
+        }
+
+        @media (max-width: 767px) {
+            .dgb-footer-grid {
+                grid-template-columns: 1fr;
+                gap: 16px;
+            }
+
+            .dgb-footer-desktop {
+                display: none;
+            }
+
+            .dgb-footer-accordion {
+                display: block;
+                border-top: 1px solid rgba(255, 255, 255, 0.2);
+            }
+
+            .dgb-footer-accordion summary {
+                position: relative;
+                padding-right: 28px;
+                font-size: 18px;
+                font-weight: 700;
+            }
+        }
+
+        @media (min-width: 961px) and (max-width: 1280px) {
+            .mobile-map-card {
+                display: block;
+            }
+
+            .map-hover-card {
+                display: none !important;
+            }
+        }
+
+        @media (max-width: 560px) {
+            .chart-accordion-summary {
+                flex-wrap: wrap;
+                align-items: flex-start;
+                row-gap: 8px;
+                padding-right: 42px;
+            }
+
+            .chart-accordion-summary::after {
+                position: absolute;
+                top: 22px;
+                right: 16px;
+                margin-left: 0;
+            }
+
+            .chart-summary-label {
+                flex: 1 1 100%;
+                padding-right: 0;
+                overflow-wrap: anywhere;
+            }
+
+            .chart-summary-service-name {
+                display: none;
+            }
+
+            .chart-summary-value {
+                flex: 1 1 100%;
+                margin-left: 30px;
+                text-align: left;
+                white-space: normal;
+                overflow-wrap: anywhere;
+            }
+        }
+
+        @media (max-width: 720px) {
+            .service-footnote-mobile-break {
+                display: block;
+            }
+
+            .service-card.featured.wide .service-split-item {
+                min-width: 0;
+            }
+
+            .service-card.featured.wide .service-split-item strong {
+                font-size: 0.98rem;
+                line-height: 1.3;
+                white-space: normal;
+                overflow-wrap: anywhere;
+            }
+
+            .service-card.featured.wide .service-split-item .service-big-number {
+                font-size: 1.55rem;
+                line-height: 1.05;
+                overflow-wrap: anywhere;
+                word-break: break-word;
+            }
+
+            .map-header {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .map-header-meta {
+                margin-left: 0;
+                align-items: flex-start;
+            }
+
+            .indicator-compare-row {
+                padding: 16px;
+            }
+
+            .indicator-compare-metric {
+                padding: 12px;
+            }
+
+            .indicator-bar-combined {
+                grid-template-columns: 1fr;
+            }
+
+            .indicator-compare-legend {
+                display: grid;
+                grid-template-columns: 1fr;
+                gap: 8px;
+            }
+        }
+
     </style>
 </head>
 <body>
+    <div id="header" aria-label="Barra institucional superior">
+        <div class="franja-gob-inner">
+            <div class="franja-gob-row">
+                <a class="franja-gob-brand" href="https://www.gob.mx/" target="_blank" rel="noopener nofollow">
+                    <img src="{% static 'assets/img/logos/logo_blanco_gob.svg' %}" width="127" height="46" class="franja-gob-logo" alt="Gobierno de México">
+                </a>
+                <div class="franja-gob-links">
+                    <a href="https://www.gob.mx/" target="_blank" rel="noopener nofollow"><span>Trámites</span></a>
+                    <a href="https://www.gob.mx/gobierno" target="_blank" rel="noopener nofollow"><span>Gobierno</span></a>
+                    <a class="franja-gob-search" href="https://www.gob.mx/" target="_blank" rel="noopener nofollow" aria-label="Buscar en gob.mx">
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="M10.5 3a7.5 7.5 0 0 1 5.963 12.052l4.242 4.243-1.414 1.414-4.243-4.242A7.5 7.5 0 1 1 10.5 3zm0 2a5.5 5.5 0 1 0 0 11 5.5 5.5 0 0 0 0-11z"/>
+                        </svg>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div id="header-spacer" aria-hidden="true"></div>
+    <header class="institutional-bar">
+        <div class="institutional-inner">
+            <div class="brand-lockup">
+                <img src="{% static 'assets/img/logos/DGB_EducaData_Logo_VF-200.png' %}" class="institutional-logo" alt="EducaData DGB en datos">
+            </div>
+            <div class="session-actions" aria-label="Sesión de usuario">
+                <div class="session-user-card" aria-label="Usuario con sesión activa">
+                    <span class="session-user-avatar" aria-hidden="true">{{ user_initial }}</span>
+                    <span class="session-user-copy">
+                        <span class="session-user-label">Sesión activa</span>
+                        <strong class="session-user-name">{{ user_display_name }}</strong>
+                    </span>
+                </div>
+                <form method="post" action="{% url 'logout' %}">
+                    {% csrf_token %}
+                    <button type="submit" class="logout-button">Cerrar sesión</button>
+                </form>
+            </div>
+        </div>
+    </header>
     <div class="app-shell">
         <div class="layout">
             <aside class="sidebar">
-                <section class="panel hero">
-                    <p class="eyebrow">Educadata</p>
-                    <h1>Dashboard territorial de media superior</h1>
-                    <p class="lead">Visualiza cobertura, absorcion, abandono y peso por servicio educativo con una lectura clara por entidad y ciclo escolar.</p>
-                    <div class="hero-status">
-                        <div class="status-card">
-                            <span>Base activa</span>
-                            <strong>{{ database_name }}</strong>
+                <section class="panel section hero filters-panel">
+                    <p class="eyebrow">Panel de control</p>
+                    
+                    <p class="lead">Selecciona ciclo, servicio educativo y estado para ver información específica.</p>
+                    <button type="button" class="filters-toggle" id="filters-toggle" aria-expanded="false">
+                        <span>Filtros</span>
+                        <span id="filters-toggle-icon">Mostrar</span>
+                    </button>
+                    <div class="filters-body" id="filters-body">
+                        <div class="field">
+                            <label for="cycle-select">Ciclo escolar</label>
+                            <select id="cycle-select">
+                                {% for cycle in available_cycles %}
+                                    <option value="{{ cycle }}" {% if cycle == default_cycle %}selected{% endif %}>{{ cycle }}</option>
+                                {% endfor %}
+                            </select>
                         </div>
-                        <div class="status-card">
-                            <span>Entidad seleccionada</span>
-                            <strong id="selected-entity">Ninguna</strong>
+                        <div class="field">
+                            <label for="service-select">Servicio educativo</label>
+                            <select id="service-select">
+                                <option value="__all__" selected>Todos los servicios</option>
+                                {% for service in available_services %}
+                                    <option value="{{ service.code }}">
+                                        {% if service.code == "CAED" %}
+                                            CAED | Centros de Atención para Estudiantes con Discapacidad
+                                        {% elif service.code == "CEB" %}
+                                            CEB | Centros de Estudio de Bachillerato
+                                        {% elif service.code == "EMSAD" or service.code == "EMSaD" %}
+                                            EMSaD | Educación Media Superior a Distancia
+                                        {% elif service.code == "PAF" %}
+                                            PAF | Preparatoria Abierta Federal
+                                        {% elif service.code == "PAE" %}
+                                            PAE | Preparatoria Abierta Estatal
+                                        {% elif service.code == "PL-SEP" %}
+                                            PL-SEP | Servicio Nacional de Bachillerato en Línea, Prepa en Línea-SEP
+                                        {% elif service.code == "TBC" %}
+                                            TBC | Telebachillerato Comunitario
+                                        {% else %}
+                                            {{ service.code }} | {{ service.label }}
+                                        {% endif %}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="field">
+                            <label for="entity-select">Estado</label>
+                            <select id="entity-select">
+                                <option value="">Todos los estados</option>
+                            </select>
+                        </div>
+                        <div class="filter-actions">
+                            <button type="button" class="reset-button" id="reset-filters" aria-label="Restablecer filtros" title="Restablecer filtros">
+                                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                    <path d="M20 12a8 8 0 1 1-2.35-5.65" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"/>
+                                    <path d="M16.5 3.5H20v3.5" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                                <span class="sr-only">Restablecer filtros</span>
+                            </button>
                         </div>
                     </div>
+                    <div class="filter-notice" id="filter-notice" hidden></div>
                 </section>
 
-                <section class="panel section">
-                    <h2 class="section-title">Filtros</h2>
-                    <div class="field">
-                        <label for="cycle-select">Ciclo escolar</label>
-                        <select id="cycle-select">
-                            {% for cycle in available_cycles %}
-                                <option value="{{ cycle }}" {% if cycle == default_cycle %}selected{% endif %}>{{ cycle }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="field">
-                        <label for="service-select">Servicio destacado</label>
-                        <select id="service-select">
-                            {% for service in available_services %}
-                                <option value="{{ service.code }}">{{ service.code }} | {{ service.label }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="service-list" id="service-chips"></div>
-                </section>
-
-                <section class="panel section">
-                    <h2 class="section-title">Contexto metodologico</h2>
-                    <div class="notes">
-                        <p>Los indicadores nacionales se calculan como promedio simple entre las 32 entidades para el ciclo seleccionado.</p>
-                        <p>Los servicios se agregan a partir de <code>planteles</code> y <code>matricula_plantel_ciclo</code> con la <code>sigla</code> disponible en la fuente.</p>
-                        <p>El GeoJSON de Mexico se sirve desde <code>/static/data/mexicoHigh.json</code>, por lo que la geometria base no depende de otra descarga en navegador.</p>
-                    </div>
-                </section>
             </aside>
 
             <main class="main">
-                <section class="topbar">
-                    <div class="topbar-copy">
-                        <p class="eyebrow" style="color: var(--accent); margin-bottom: 8px;">Panorama nacional</p>
-                        <h2>Seguimiento de acceso y permanencia</h2>
-                        <p>El diseño prioriza contraste alto, jerarquia clara y lectura rapida para sesiones de analisis operativo en escritorio o movil.</p>
-                    </div>
-                    <div class="topbar-badges">
-                        <div class="badge">Ciclo activo: <span id="active-cycle">{{ default_cycle }}</span></div>
-                        <div class="badge">Estado activo: <span id="active-state">Ninguno</span></div>
-                    </div>
-                </section>
-
-                <section class="summary-grid">
-                    <article class="summary-card accent">
-                        <span class="summary-label">Cobertura nacional</span>
-                        <div class="summary-value" id="summary-coverage">-</div>
-                        <p class="summary-note">Promedio simple del indicador de cobertura por entidad para el ciclo activo.</p>
-                    </article>
-                    <article class="summary-card">
-                        <span class="summary-label">Absorcion nacional</span>
-                        <div class="summary-value" id="summary-absorption">-</div>
-                        <p class="summary-note">Sirve para detectar presion de ingreso al nivel medio superior.</p>
-                    </article>
-                    <article class="summary-card highlight">
-                        <span class="summary-label">Matricula del servicio</span>
-                        <div class="summary-value" id="summary-service-students">-</div>
-                        <p class="summary-note" id="summary-service-label">Selecciona un servicio para ver su peso nacional.</p>
-                    </article>
-                    <article class="summary-card">
-                        <span class="summary-label">Entidades con dato</span>
-                        <div class="summary-value" id="summary-entities">-</div>
-                        <p class="summary-note">Cobertura territorial disponible en la API del dashboard.</p>
-                    </article>
-                </section>
-
                 <section class="panel map-card">
                     <div class="map-header">
                         <div>
                             <p class="section-title">Mapa interactivo</p>
-                            <h3 style="margin-bottom: 0;">Comparativo territorial por entidad</h3>
-                            <p>Haz clic en cualquier estado para activar sus indicadores y el resumen de servicio.</p>
+                            <h3 style="margin-bottom: 0;">Comparativo territorial por estado</h3>
+                            <p>Haz clic en cualquier estado para activar sus indicadores y el resumen del servicio.</p>
                         </div>
-                        <div class="selection-pill">Seleccion: <span id="selection-pill-value">Ninguna</span></div>
+                        <div class="map-header-meta">
+                            <div class="selection-pill">Selección: <span id="selection-pill-value">Nacional</span></div>
+                            <div class="selection-pill" style="margin-top: 10px;">Ciclo activo: <span id="active-cycle">{{ default_cycle }}</span></div>
+                        </div>
                     </div>
-                    <div id="map"></div>
+                    <div class="map-viewport">
+                        <div class="map-hover-card" id="map-hover-card" hidden></div>
+                        <div id="map"></div>
+                    </div>
+                    <div class="mobile-map-card" id="mobile-map-card" hidden></div>
+                    <p class="map-source"><strong>Fuente:</strong> Sistema de Estadísticas Continuas de Educación del Formato 911, DGPPyEE, SEP.</p>
+                </section>
+
+                <section class="panel detail-card">
+                    <div class="card-header">
+                        <div>
+                            <p class="section-title">Servicio educativo</p>
+                            <h3 style="margin-bottom: 0;">Composición y participación</h3>
+                            <p id="service-detail-subtitle">Selecciona una entidad para desplegar el resumen del servicio activo.</p>
+                        </div>
+                    </div>
+                    <div id="service-detail-content" class="empty">Selecciona un estado en el mapa para ver el resumen por servicio.</div>
+                </section>
+
+                <section class="panel detail-card">
+                    <div class="card-header">
+                        <div>
+                            <p class="section-title">Comparativo</p>
+                            <h3 style="margin-bottom: 0;">Peso del servicio a nivel nacional</h3>
+                        </div>
+                    </div>
+                    <div class="service-chart-wrap">
+                        <div class="service-chart-visual">
+                            <div id="service-chart" hidden></div>
+                        </div>
+                        <div class="service-chart-table">
+                            <div id="service-chart-summary" class="chart-summary"></div>
+                        </div>
+                    </div>
+                    <p class="service-note"><strong>Fuente:</strong> Sistema de Estadísticas Continuas de Educación del Formato 911, DGPPyEE, SEP.</p>
                 </section>
 
                 <section class="detail-grid">
@@ -628,59 +2939,442 @@
                             <div class="card-header">
                                 <div>
                                     <p class="section-title">Indicadores</p>
-                                    <h3 style="margin-bottom: 0;">Entidad vs promedio nacional</h3>
+                                    <h3 style="margin-bottom: 0;">Estado vs promedio nacional</h3>
+                                    <p>Este bloque muestra indicadores estatales del ciclo activo; no cambia por servicio educativo.</p>
                                 </div>
                             </div>
                             <div id="indicators-content" class="empty">Haz clic en un estado del mapa para ver indicadores y comparativo nacional.</div>
                         </section>
                     </div>
-
-                    <div class="stack">
-                        <section class="panel detail-card">
-                            <div class="card-header">
-                                <div>
-                                    <p class="section-title">Servicio educativo</p>
-                                    <h3 style="margin-bottom: 0;">Composicion y participacion</h3>
-                                    <p id="service-detail-subtitle">Selecciona una entidad para desplegar el resumen del servicio activo.</p>
-                                </div>
-                            </div>
-                            <div id="service-detail-content" class="empty">Selecciona un estado en el mapa para ver el resumen por servicio.</div>
-                            <div class="service-chart-wrap">
-                                <canvas id="service-chart" hidden></canvas>
-                            </div>
-                        </section>
-                    </div>
                 </section>
             </main>
+
         </div>
     </div>
+    <footer class="dgb-site-footer" role="contentinfo">
+        <div class="dgb-footer-main">
+            <div class="footer-inner">
+                <div class="dgb-footer-grid">
+                    <div class="dgb-footer-brand-col">
+                        <img
+                            src="{% static 'assets/img/logos/logo_blanco_gob.svg' %}"
+                            alt="Gobierno de México"
+                            class="dgb-footer-logo"
+                        >
+                    </div>
+
+                    <div class="dgb-footer-links-col">
+                        <div class="dgb-footer-desktop">
+                            <h5>Enlaces</h5>
+                            <ul>
+                                <li><a href="https://data.buengobierno.gob.mx/" target="_blank" rel="noopener noreferrer">Datos abiertos de la SABG</a></li>
+                                <li><a href="http://www.ordenjuridico.gob.mx" target="_blank" rel="noopener noreferrer">Marco Jurídico</a></li>
+                                <li><a href="https://consultapublicamx.plataformadetransparencia.org.mx/vut-web/faces/view/consultaPublica.xhtml#inicio" target="_blank" rel="noopener noreferrer">Plataforma Nacional de Transparencia</a></li>
+                                <li><a href="https://transparencia.gob.mx" target="_blank" rel="noopener noreferrer">Transparencia para el pueblo</a></li>
+                                <li><a href="https://alertadores.buengobierno.gob.mx/" target="_blank" rel="noopener noreferrer">Alerta</a></li>
+                            </ul>
+                        </div>
+                        <details class="dgb-footer-accordion">
+                            <summary>Enlaces</summary>
+                            <div class="dgb-footer-accordion-body">
+                                <ul>
+                                    <li><a href="https://data.buengobierno.gob.mx/" target="_blank" rel="noopener noreferrer">Datos abiertos de la SABG</a></li>
+                                    <li><a href="http://www.ordenjuridico.gob.mx" target="_blank" rel="noopener noreferrer">Marco Jurídico</a></li>
+                                    <li><a href="https://consultapublicamx.plataformadetransparencia.org.mx/vut-web/faces/view/consultaPublica.xhtml#inicio" target="_blank" rel="noopener noreferrer">Plataforma Nacional de Transparencia</a></li>
+                                    <li><a href="https://transparencia.gob.mx" target="_blank" rel="noopener noreferrer">Transparencia para el pueblo</a></li>
+                                    <li><a href="https://alertadores.buengobierno.gob.mx/" target="_blank" rel="noopener noreferrer">Alerta</a></li>
+                                </ul>
+                            </div>
+                        </details>
+                    </div>
+
+                    <div class="dgb-footer-about-col">
+                        <div class="dgb-footer-desktop">
+                            <h5>¿Qué es gob.mx?</h5>
+                            <p>Es el portal único de trámites, información y participación ciudadana. <a href="https://www.gob.mx/que-es-gobmx" target="_blank" rel="noopener noreferrer">Leer más</a></p>
+                            <ul>
+                                <li><a href="https://datos.gob.mx" target="_blank" rel="noopener noreferrer">Portal de datos abiertos</a></li>
+                                <li><a href="https://www.gob.mx/accesibilidad" target="_blank" rel="noopener noreferrer">Declaración de accesibilidad</a></li>
+                                <li><a href="https://www.gob.mx/terminos" target="_blank" rel="noopener noreferrer">Términos y Condiciones</a></li>
+                                <li><a href="https://www.gob.mx/sitemap" target="_blank" rel="noopener noreferrer">Mapa de sitio</a></li>
+                            </ul>
+                        </div>
+                        <details class="dgb-footer-accordion">
+                            <summary>¿Qué es gob.mx?</summary>
+                            <div class="dgb-footer-accordion-body">
+                                <p>Es el portal único de trámites, información y participación ciudadana. <a href="https://www.gob.mx/que-es-gobmx" target="_blank" rel="noopener noreferrer">Leer más</a></p>
+                                <ul>
+                                    <li><a href="https://datos.gob.mx" target="_blank" rel="noopener noreferrer">Portal de datos abiertos</a></li>
+                                    <li><a href="https://www.gob.mx/accesibilidad" target="_blank" rel="noopener noreferrer">Declaración de accesibilidad</a></li>
+                                    <li><a href="https://www.gob.mx/terminos" target="_blank" rel="noopener noreferrer">Términos y Condiciones</a></li>
+                                    <li><a href="https://www.gob.mx/sitemap" target="_blank" rel="noopener noreferrer">Mapa de sitio</a></li>
+                                </ul>
+                            </div>
+                        </details>
+                    </div>
+
+                    <div class="dgb-footer-social-col">
+                        <h5>
+                            <a
+                                href="https://www.gob.mx/tramites/ficha/presentacion-de-quejas-y-denuncias-en-la-sfp/SFP54"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                class="dgb-footer-denuncia-link"
+                            >
+                                Denuncia contra servidores públicos
+                            </a>
+                        </h5>
+                        <h6 class="dgb-footer-social-title">Síguenos en</h6>
+                        <ul class="dgb-footer-social">
+                            <li>
+                                <a id="Facebook" href="https://www.facebook.com/gobmexico" target="_blank" rel="noopener noreferrer" title="Facebook">
+                                    <img alt="Facebook" src="https://framework-gb.cdn.gob.mx/landing/img/facebook.png">
+                                </a>
+                            </li>
+                            <li>
+                                <a id="Twitter" href="https://twitter.com/GobiernoMX" target="_blank" rel="noopener noreferrer" title="Twitter">
+                                    <img alt="Twitter" src="https://framework-gb.cdn.gob.mx/landing/img/twitter.png">
+                                </a>
+                            </li>
+                            <li>
+                                <a id="Instagram" href="https://www.instagram.com/gobmexico/" target="_blank" rel="noopener noreferrer" title="Instagram">
+                                    <img alt="Instagram" src="https://framework-gb.cdn.gob.mx/landing/img/instagram.png">
+                                </a>
+                            </li>
+                            <li>
+                                <a id="Youtube" href="https://www.youtube.com/@gobiernodemexico" target="_blank" rel="noopener noreferrer" title="YouTube">
+                                    <img alt="YouTube" src="https://framework-gb.cdn.gob.mx/landing/img/youtube.png">
+                                </a>
+                            </li>
+                        </ul>
+                        <div class="dgb-footer-hotline">
+                            <div class="logo-079">
+                                <a href="tel:+079" target="_blank" rel="noopener noreferrer">
+                                    <img src="https://framework-gb.cdn.gob.mx/gobmx/img/079.png" alt="Línea 079">
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </footer>
 
     <script>
+        const ALL_SERVICES_VALUE = "__all__";
+        const ALL_SERVICES_LABEL = "Todos los servicios";
+        const SERVICE_LABEL_OVERRIDES = {
+            CAED: "Centros de Atención para Estudiantes con Discapacidad",
+            CEB: "Centros de Estudio de Bachillerato",
+            COBAES: "Colegios de Bachilleres en los Estados",
+            EMSAD: "Educación Media Superior a Distancia",
+            EMSaD: "Educación Media Superior a Distancia",
+            EPPIS: "Escuelas Preparatorias Particulares Incorporadas",
+            PAF: "Preparatoria Abierta Federal",
+            PAE: "Preparatoria Abierta Estatal",
+            "PL-SEP": "Servicio Nacional de Bachillerato en Línea, Prepa en Línea-SEP",
+            PREFECO: "Preparatorias Federales por Cooperación",
+            TBC: "Telebachillerato Comunitario",
+        };
+        const SERVICE_CHARACTERIZATION = {
+            CEB: {
+                serviceName: "Centros de Estudio de Bachillerato",
+                modalidad: "Escolarizada",
+                oferta: "Escolar tradicional",
+                poblacion: "Estudiantes con acceso a planteles educativos. Estudiantes en zonas urbanas y semiurbanas. Oferta educativa presencial para la población en edad típica escolar.",
+                modelo: "Semestral (6 semestres)",
+            },
+            COBAES: {
+                serviceName: "Colegios de Bachilleres en los Estados",
+                modalidad: "Escolarizada",
+                oferta: "Escolar tradicional",
+                poblacion: "Estudiantes con acceso a planteles educativos. Estudiantes en zonas urbanas y semiurbanas. Oferta educativa presencial para la población en edad típica escolar.",
+                modelo: "Semestral (6 semestres)",
+            },
+            EPPIS: {
+                serviceName: "Escuelas Preparatorias Particulares Incorporadas",
+                modalidad: "Escolarizada",
+                oferta: "Escolar tradicional",
+                poblacion: "Estudiantes con acceso a planteles educativos. Estudiantes en zonas urbanas y semiurbanas. Oferta educativa presencial para la población en edad típica escolar.",
+                modelo: "Semestral (6 semestres)",
+            },
+            EPPI: {
+                serviceName: "Escuelas Preparatorias Particulares Incorporadas",
+                modalidad: "Escolarizada",
+                oferta: "Escolar tradicional",
+                poblacion: "Estudiantes con acceso a planteles educativos. Estudiantes en zonas urbanas y semiurbanas. Oferta educativa presencial para la población en edad típica escolar.",
+                modelo: "Semestral (6 semestres)",
+            },
+            PAE: {
+                serviceName: "Preparatoria Abierta Estatal",
+                modalidad: "No escolarizada",
+                oferta: "Flexible",
+                poblacion: "Jóvenes y personas adultas. Pueden adaptar sus tiempos de estudio. Asesorías virtuales y presenciales.",
+                modelo: "Acreditación de exámenes y modelo modular",
+            },
+            PAF: {
+                serviceName: "Preparatoria Abierta Federal",
+                modalidad: "No escolarizada",
+                oferta: "Flexible",
+                poblacion: "Jóvenes y personas adultas. Pueden adaptar sus tiempos de estudio. Asesorías virtuales y presenciales.",
+                modelo: "Acreditación de exámenes y modelo modular",
+            },
+            CAED: {
+                serviceName: "Centros de Atención para Estudiantes con Discapacidad",
+                modalidad: "No escolarizada",
+                oferta: "Específica",
+                poblacion: "Personas con discapacidad. Atención especializada. Planteles con condiciones de accesibilidad.",
+                modelo: "Acreditación de exámenes y modelo modular",
+            },
+            "PL-SEP": {
+                serviceName: "Prepa en Línea-SEP",
+                modalidad: "No escolarizada",
+                oferta: "Flexible",
+                poblacion: "Jóvenes y personas adultas. Pueden adaptar sus tiempos de estudio. El servicio es completamente virtual.",
+                modelo: "Modular",
+            },
+            PREFECO: {
+                serviceName: "Preparatorias Federales por Cooperación",
+                modalidad: "Escolarizada",
+                oferta: "Escolar tradicional",
+                poblacion: "Estudiantes con acceso a planteles educativos. Estudiantes en zonas urbanas y semiurbanas. Oferta educativa presencial para la población en edad típica escolar.",
+                modelo: "Semestral (6 semestres)",
+            },
+            EMSAD: {
+                serviceName: "Educación Media Superior a Distancia",
+                modalidad: "Mixta",
+                oferta: "Sin servicios cercanos de EMS",
+                poblacion: "Localidades rurales o semiurbanas. Hasta 5,000 habitantes. Sin planteles cercanos.",
+                modelo: "Semestral (6 semestres)",
+            },
+            EMSaD: {
+                serviceName: "Educación Media Superior a Distancia",
+                modalidad: "Mixta",
+                oferta: "Sin servicios cercanos de EMS",
+                poblacion: "Localidades rurales o semiurbanas. Hasta 5,000 habitantes. Sin planteles cercanos.",
+                modelo: "Semestral (6 semestres)",
+            },
+            TBC: {
+                serviceName: "Telebachillerato Comunitario",
+                modalidad: "Escolarizada",
+                oferta: "Sin servicios cercanos de EMS",
+                poblacion: "Localidades con menos de 2,500 habitantes. Sin otro servicio de EMS en un radio de 5 km.",
+                modelo: "Semestral (6 semestres)",
+            },
+        };
+
         const state = {
             cycle: "{{ default_cycle }}",
             data: null,
             selectedEntityKey: null,
             selectedService: document.getElementById("service-select").value,
+            defaultCycle: "{{ default_cycle }}",
+            defaultService: document.getElementById("service-select").value,
             chart: null,
+            genderChart: null,
             layers: new Map(),
         };
 
-        const map = L.map("map", { zoomControl: true }).setView([24, -102], 5.4);
+        function getServiceDisplayLabel(service) {
+            if (!service) return "";
+            return SERVICE_LABEL_OVERRIDES[service.code] || service.label || service.code;
+        }
+
+        function getServiceCodeDisplayLabel(code) {
+            return code === "EMSAD" ? "EMSaD" : code;
+        }
+
+        function getServiceByCode(code) {
+            return state.data?.available_services?.find((item) => item.code === code) || null;
+        }
+
+        function getServiceRoleLabel(serviceCode) {
+            return serviceCode === "PL-SEP" ? "Asesores virtuales" : "Docentes";
+        }
+
+        function getServiceColor(code, fallbackIndex = 0) {
+            const byCode = {
+                "PREFECO": "#e67e22",
+                "CAED": "#0b6e69",
+                "CEB": "#7a1f37",
+                "EMSAD": "#4a698f",
+                "EMSaD": "#4a698f",
+                "PAE": "#9d7a29",
+                "PAF": "#b44d69",
+                "PL-SEP": "#87a7c9",
+                "TBC": "#7b4db8",
+            };
+            if (byCode[code]) return byCode[code];
+            const palette = ["#0b6e69", "#7a1f37", "#4a698f", "#9d7a29", "#b44d69", "#87a7c9", "#d5e4e1", "#e67e22"];
+            return palette[fallbackIndex % palette.length];
+        }
+
+        function getServiceCharacterization(service) {
+            return SERVICE_CHARACTERIZATION[service.code] || {
+                serviceName: getServiceDisplayLabel(service),
+                modalidad: "Sin dato disponible",
+                oferta: "Sin dato disponible",
+                poblacion: "Sin dato disponible",
+                modelo: "Sin dato disponible",
+            };
+        }
+
+        function renderChartAccordionItem(service, total, color, defaultOpen = false) {
+            const shareBase = toSafeNumber(service.alumnos);
+            const shareTotal = toSafeNumber(total);
+            const share = shareTotal ? ((shareBase / shareTotal) * 100) : 0;
+            const characterization = getServiceCharacterization(service);
+            const codeLabel = getServiceCodeDisplayLabel(service.code);
+            return `
+                <details class="chart-accordion-item" ${defaultOpen ? "open" : ""}>
+                    <summary class="chart-accordion-summary">
+                        <span class="chart-summary-label">
+                            <span class="chart-summary-dot" style="background:${color};"></span>
+                            <strong class="chart-summary-code">${codeLabel}</strong>
+                            <span class="chart-summary-service-name">| ${getServiceDisplayLabel(service)}</span>
+                        </span>
+                        <strong class="chart-summary-value">${formatNumber(service.alumnos)}</strong>
+                    </summary>
+                    <div class="chart-accordion-panel">
+                        <div class="chart-accordion-row">
+                            <span>Servicio de la DGB</span>
+                            <strong>${characterization.serviceName} (${codeLabel})</strong>
+                        </div>
+                        <div class="chart-accordion-row">
+                            <span>Modalidad de atención educativa</span>
+                            <strong>${characterization.modalidad}</strong>
+                        </div>
+                        <div class="chart-accordion-row">
+                            <span>Oferta educativa</span>
+                            <strong>${characterization.oferta}</strong>
+                        </div>
+                        <div class="chart-accordion-row">
+                            <span>Población objetivo</span>
+                            <strong>${characterization.poblacion}</strong>
+                        </div>
+                        <div class="chart-accordion-row">
+                            <span>Modelo educativo</span>
+                            <strong>${characterization.modelo}</strong>
+                        </div>
+                    </div>
+                </details>
+            `;
+        }
+
+        function renderChartDescriptionList(services) {
+            const items = (services || []).map((service) => {
+                const characterization = getServiceCharacterization(service);
+                const codeLabel = getServiceCodeDisplayLabel(service.code);
+                return `
+                    <div class="chart-description-item">
+                        <div class="chart-accordion-panel">
+                            <div class="chart-accordion-row">
+                                <span>Servicio de la DGB</span>
+                                <strong>${characterization.serviceName} (${codeLabel})</strong>
+                            </div>
+                            <div class="chart-accordion-row">
+                                <span>Modalidad de atención educativa</span>
+                                <strong>${characterization.modalidad}</strong>
+                            </div>
+                            <div class="chart-accordion-row">
+                                <span>Oferta educativa</span>
+                                <strong>${characterization.oferta}</strong>
+                            </div>
+                            <div class="chart-accordion-row">
+                                <span>Población objetivo</span>
+                                <strong>${characterization.poblacion}</strong>
+                            </div>
+                            <div class="chart-accordion-row">
+                                <span>Modelo educativo</span>
+                                <strong>${characterization.modelo}</strong>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join("");
+            return items ? `<div class="chart-description-list">${items}</div>` : "";
+        }
+
+        function renderSingleChartDescription(service) {
+            if (!service) return "";
+            const characterization = getServiceCharacterization(service);
+            const codeLabel = getServiceCodeDisplayLabel(service.code);
+            return `
+                <div class="chart-description-list">
+                    <div class="chart-description-item">
+                        <div class="chart-accordion-panel">
+                            <div class="chart-accordion-row">
+                                <span>Servicio de la DGB</span>
+                                <strong>${characterization.serviceName} (${codeLabel})</strong>
+                            </div>
+                            <div class="chart-accordion-row">
+                                <span>Modalidad de atención educativa</span>
+                                <strong>${characterization.modalidad}</strong>
+                            </div>
+                            <div class="chart-accordion-row">
+                                <span>Oferta educativa</span>
+                                <strong>${characterization.oferta}</strong>
+                            </div>
+                            <div class="chart-accordion-row">
+                                <span>Población objetivo</span>
+                                <strong>${characterization.poblacion}</strong>
+                            </div>
+                            <div class="chart-accordion-row">
+                                <span>Modelo educativo</span>
+                                <strong>${characterization.modelo}</strong>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        const mexicoBounds = L.latLngBounds(
+            L.latLng(14.3, -118.5),
+            L.latLng(32.9, -86.2)
+        );
+        const mexicoFocusBounds = L.latLngBounds(
+            L.latLng(14.6, -117.8),
+            L.latLng(32.0, -86.8)
+        );
+        const mexicoMobileFocusBounds = L.latLngBounds(
+            L.latLng(16.0, -114.6),
+            L.latLng(30.7, -86.3)
+        );
+
+        const map = L.map("map", {
+            zoomControl: false,
+            dragging: isMobileLayout(),
+            scrollWheelZoom: false,
+            doubleClickZoom: isMobileLayout(),
+            boxZoom: false,
+            keyboard: false,
+            touchZoom: isMobileLayout(),
+            tap: isMobileLayout(),
+        });
         L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", {
             attribution: "&copy; OpenStreetMap, &copy; CartoDB",
         }).addTo(map);
+        function fitMapToViewport() {
+            const targetBounds = isMobileLayout() ? mexicoMobileFocusBounds : mexicoFocusBounds;
+            const padding = isMobileLayout() ? [4, 4] : [6, 6];
+            map.fitBounds(targetBounds, { padding });
+        }
+
+        fitMapToViewport();
+        map.setMaxBounds(mexicoBounds);
 
         const baseStyle = {
             color: "#ffffff",
             weight: 1,
-            fillColor: "#8fb6ae",
+            fillColor: "#6f8fb8",
             fillOpacity: 0.9,
         };
 
         const activeStyle = {
             color: "#ffffff",
             weight: 1.6,
-            fillColor: "#b24c2f",
+            fillColor: "#611232",
             fillOpacity: 0.96,
         };
 
@@ -696,6 +3390,13 @@
             return `${Number(value || 0).toFixed(1)}%`;
         }
 
+        function toSafeNumber(value) {
+            if (value === null || value === undefined || value === "") return 0;
+            const normalized = typeof value === "string" ? value.replace(/,/g, "").trim() : value;
+            const numeric = Number(normalized);
+            return Number.isFinite(numeric) ? numeric : 0;
+        }
+
         function compareArrow(localValue, nationalValue) {
             if (localValue > nationalValue) return '<span class="up">↑</span>';
             if (localValue < nationalValue) return '<span class="down">↓</span>';
@@ -704,22 +3405,41 @@
 
         function tooltipHtml(entity) {
             const services = Object.values(entity.services || {}).sort((a, b) => b.alumnos - a.alumnos);
+            const totals = services.reduce((acc, service) => {
+                acc.alumnos += Number(service.alumnos || 0);
+                acc.mujeres += Number(service.mujeres || 0);
+                acc.hombres += Number(service.hombres || 0);
+                acc.docentes += Number(service.docentes || 0);
+                acc.escuelas += Number(service.escuelas || 0);
+                return acc;
+            }, { alumnos: 0, mujeres: 0, hombres: 0, docentes: 0, escuelas: 0 });
             const rows = services.length
                 ? services.map((service) => `
                     <tr>
-                        <td>${service.code}</td>
-                        <td>${formatNumber(service.alumnos)}</td>
-                        <td>${formatNumber(service.docentes)}</td>
-                        <td>${formatNumber(service.escuelas)}</td>
+                        <td><strong>${service.code}</strong></td>
+                        <td class="col-right">${formatNumber(service.alumnos)}</td>
+                        <td class="col-right">${formatNumber(service.mujeres || 0)}</td>
+                        <td class="col-right">${formatNumber(service.hombres || 0)}</td>
+                        <td class="col-right">${formatNumber(service.docentes)}</td>
+                        <td class="col-right">${formatNumber(service.escuelas)}</td>
                     </tr>
-                `).join("")
-                : '<tr><td colspan="4">Sin datos</td></tr>';
+                `).join("") + `
+                    <tr>
+                        <td><strong>Total</strong></td>
+                        <td class="col-right"><strong>${formatNumber(totals.alumnos)}</strong></td>
+                        <td class="col-right"><strong>${formatNumber(totals.mujeres)}</strong></td>
+                        <td class="col-right"><strong>${formatNumber(totals.hombres)}</strong></td>
+                        <td class="col-right"><strong>${formatNumber(totals.docentes)}</strong></td>
+                        <td class="col-right"><strong>${formatNumber(totals.escuelas)}</strong></td>
+                    </tr>
+                `
+                : '<tr><td colspan="6">Sin datos</td></tr>';
             return `
                 <div class="tooltip-table">
                     <h3>${entity.name}</h3>
                     <table>
                         <thead>
-                            <tr><td>Servicio</td><td>Alumnos</td><td>Docentes</td><td>Escuelas</td></tr>
+                            <tr><td><strong>Servicio</strong></td><td class="col-right"><strong>Estudiantes</strong></td><td class="col-right"><strong>Mujeres</strong></td><td class="col-right"><strong>Hombres</strong></td><td class="col-right"><strong>Docentes</strong></td><td class="col-right"><strong>Escuelas</strong></td></tr>
                         </thead>
                         <tbody>${rows}</tbody>
                     </table>
@@ -732,189 +3452,972 @@
             return Object.values(state.data.entities).find((entity) => entity.entity_key === state.selectedEntityKey) || null;
         }
 
-        function renderOverview() {
-            const national = state.data?.national_indicators || {};
-            const nationalService = state.data?.national_services?.[state.selectedService] || null;
-            const entitiesCount = Object.keys(state.data?.entities || {}).length;
+        function setText(id, value) {
+            const node = document.getElementById(id);
+            if (node) node.textContent = value;
+        }
 
-            document.getElementById("summary-coverage").textContent = formatPercent(national.cobertura);
-            document.getElementById("summary-absorption").textContent = formatPercent(national.absorcion);
-            document.getElementById("summary-service-students").textContent = nationalService ? formatNumber(nationalService.alumnos) : "-";
-            document.getElementById("summary-service-label").textContent = nationalService
-                ? `Matricula nacional agregada para ${state.selectedService}.`
-                : "Selecciona un servicio para ver su peso nacional.";
-            document.getElementById("summary-entities").textContent = formatNumber(entitiesCount);
+        function getActiveServiceData(selected = getSelectedEntity()) {
+            if (!selected) return null;
+            if (state.selectedService === ALL_SERVICES_VALUE) {
+                return aggregateServiceMap(selected.services || {}, ALL_SERVICES_LABEL);
+            }
+            return selected.services?.[state.selectedService] || null;
+        }
+
+        function getNationalServiceData() {
+            if (state.selectedService === ALL_SERVICES_VALUE) {
+                return aggregateServiceMap(state.data?.national_services || {}, ALL_SERVICES_LABEL);
+            }
+            return state.data?.national_services?.[state.selectedService] || null;
+        }
+
+        function aggregateServiceMap(serviceMap, label) {
+            const services = Object.values(serviceMap || {});
+            if (!services.length) return null;
+            return services.reduce((acc, service) => {
+                acc.alumnos += Number(service.alumnos || 0);
+                acc.mujeres += Number(service.mujeres || 0);
+                acc.hombres += Number(service.hombres || 0);
+                acc.docentes += Number(service.docentes || 0);
+                acc.docentes_m += Number(service.docentes_m || 0);
+                acc.docentes_h += Number(service.docentes_h || 0);
+                acc.escuelas += Number(service.escuelas || 0);
+                return acc;
+            }, {
+                code: ALL_SERVICES_VALUE,
+                label,
+                alumnos: 0,
+                mujeres: 0,
+                hombres: 0,
+                docentes: 0,
+                docentes_m: 0,
+                docentes_h: 0,
+                escuelas: 0,
+            });
+        }
+
+        function getServiceBreakdown(serviceMap) {
+            return Object.values(serviceMap || {})
+                .filter((service) => Number(service.alumnos || 0) > 0)
+                .sort((a, b) => Number(b.alumnos || 0) - Number(a.alumnos || 0));
+        }
+
+        function renderDesktopHoverCard(entity, corner = "corner-top-right") {
+            const card = document.getElementById("map-hover-card");
+            if (!card) return;
+            if (isMobileLayout() || !entity) {
+                card.hidden = true;
+                card.innerHTML = "";
+                card.classList.remove("corner-top-right", "corner-bottom-left");
+                return;
+            }
+            card.classList.remove("corner-top-right", "corner-bottom-left");
+            card.classList.add(corner);
+            card.hidden = false;
+            card.innerHTML = tooltipHtml(entity);
+        }
+
+        function isMobileLayout() {
+            return window.matchMedia("(max-width: 1280px)").matches;
+        }
+
+        function useCompactFiltersLayout() {
+            return window.matchMedia("(max-width: 1260px)").matches;
+        }
+
+        function renderFilterNotice() {
+            const notice = document.getElementById("filter-notice");
+            if (state.selectedService === ALL_SERVICES_VALUE) {
+                notice.hidden = true;
+                notice.textContent = "";
+                return;
+            }
+            const service = state.data?.available_services?.find((item) => item.code === state.selectedService);
+            const hasNationalData = Boolean(state.data?.national_services?.[state.selectedService]);
+            if (hasNationalData) {
+                notice.hidden = true;
+                notice.textContent = "";
+                return;
+            }
+            const label = service?.label || state.selectedService;
+            notice.hidden = false;
+            notice.textContent = `${label} no tiene datos disponibles para el ciclo ${state.data?.cycle || state.cycle}.`;
+        }
+
+        function syncFiltersAccordion(forceExpanded = null) {
+            const panel = document.querySelector(".filters-panel");
+            const toggle = document.getElementById("filters-toggle");
+            const icon = document.getElementById("filters-toggle-icon");
+            if (!panel || !toggle || !icon) return;
+
+            if (!useCompactFiltersLayout()) {
+                panel.classList.add("expanded");
+                toggle.setAttribute("aria-expanded", "true");
+                icon.textContent = "Ocultar";
+                return;
+            }
+
+            if (forceExpanded !== null) {
+                panel.classList.toggle("expanded", forceExpanded);
+            }
+
+            const expanded = panel.classList.contains("expanded");
+            toggle.setAttribute("aria-expanded", expanded ? "true" : "false");
+            icon.textContent = expanded ? "Ocultar" : "Mostrar";
+        }
+
+        function renderMobileMapCard() {
+            const card = document.getElementById("mobile-map-card");
+            if (!isMobileLayout()) {
+                card.hidden = true;
+                card.innerHTML = "";
+                return;
+            }
+            const selected = getSelectedEntity();
+            if (!selected) {
+                card.hidden = false;
+                card.innerHTML = '<div class="empty">Toca un estado del mapa para ver su resumen territorial.</div>';
+                return;
+            }
+            const services = Object.values(selected.services || {}).sort((a, b) => b.alumnos - a.alumnos);
+            const totals = services.reduce((acc, service) => {
+                acc.alumnos += Number(service.alumnos || 0);
+                acc.mujeres += Number(service.mujeres || 0);
+                acc.hombres += Number(service.hombres || 0);
+                acc.docentes += Number(service.docentes || 0);
+                acc.escuelas += Number(service.escuelas || 0);
+                return acc;
+            }, { alumnos: 0, mujeres: 0, hombres: 0, docentes: 0, escuelas: 0 });
+            const rows = services.length
+                ? services.map((service) => `
+                    <tr>
+                        <td class="col-service"><strong>${service.code}</strong></td>
+                        <td>${formatNumber(service.alumnos)}</td>
+                        <td>${formatNumber(service.docentes || 0)}</td>
+                        <td>${formatNumber(service.escuelas || 0)}</td>
+                    </tr>
+                `).join("") + `
+                    <tr>
+                        <td class="col-service"><strong>Total</strong></td>
+                        <td><strong>${formatNumber(totals.alumnos)}</strong></td>
+                        <td><strong>${formatNumber(totals.docentes)}</strong></td>
+                        <td><strong>${formatNumber(totals.escuelas)}</strong></td>
+                    </tr>
+                `
+                : '<tr><td colspan="4">Sin datos</td></tr>';
+            card.hidden = false;
+            card.innerHTML = `
+                <h4>${selected.name}</h4>
+                <div class="tooltip-table">
+                    <table>
+                        <thead>
+                            <tr>
+                                <td title="Servicio"><strong>Servicio</strong></td>
+                                <td title="Estudiantes"><strong>Estudiantes</strong></td>
+                                <td title="Docentes"><strong>Docentes</strong></td>
+                                <td title="Escuelas"><strong>Escuelas</strong></td>
+                            </tr>
+                        </thead>
+                        <tbody>${rows}</tbody>
+                    </table>
+                </div>
+            `;
         }
 
         function renderIndicators() {
             const container = document.getElementById("indicators-content");
             const selected = getSelectedEntity();
+            const national = state.data.national_indicators || {};
+            const indicatorLabels = [
+                ["Cobertura", "cobertura"],
+                ["Tasa de absorción", "absorcion"],
+                ["Tasa de abandono*", "abandono"],
+                ["Tasa de reprobación*", "reprobacion"],
+                ["Tasa neta de escolarización", "escolarizacion"],
+                ["Tasa de terminación*", "terminacion"],
+            ];
+
+            const renderIndicatorNotice = (key) => {
+                const notices = {
+                    abandono: `
+                        *Las tasa de abandono 2024–2025 corresponde al ciclo 2023–2024. La fuente oficial no ha actualizado esta información al corte del presente análisis.<br>
+                        *Una mayor tasa de abandono escolar representa un desempeño inadecuado.
+                    `,
+                    reprobacion: `
+                        *La tasa de reprobación 2024–2025 corresponde al ciclo 2023–2024. La fuente oficial no ha actualizado esta información al corte del presente análisis.<br>
+                        *Una menor tasa de reprobación representa un desempeño adecuado.
+                    `,
+                    terminacion: `
+                        *La tasa de terminación 2024–2025 corresponde al ciclo 2023–2024. La fuente oficial no ha actualizado esta información al corte del presente análisis.
+                    `,
+                };
+                if (!notices[key]) return "";
+                return `<span style="display:block; margin-top:8px; font-size:0.8rem; line-height:1.45; color:#5f6f7d;">${notices[key]}</span>`;
+            };
+            const renderIndicatorSource = () => `
+                <div class="indicator-disclaimer">
+                    <p><strong>Fuente:</strong> Histórico de Indicadores correspondiente a los ciclos escolares 2019-2020, 2020-2021, 2021-2022, 2022-2023, 2023-2024 y 2024-2025 DGPPyEE-SEP. SEMS en cifras</p>
+                </div>
+            `;
+
+            const renderMetricCell = (label, value, fillClass) => `
+                <div class="indicator-compare-metric">
+                    <div class="indicator-compare-top">
+                        <span>${label}</span>
+                        <strong>${formatPercent(value)}</strong>
+                    </div>
+                    <div class="indicator-bar-track">
+                        <div class="indicator-bar-fill ${fillClass}" style="width:${Math.max(0, Math.min(value, 100))}%"></div>
+                    </div>
+                </div>
+            `;
+
+            const renderCombinedMetricCell = (nationalLabel, nationalValue, stateLabel, stateValue, noticeHtml = "") => `
+                <div class="indicator-compare-metric">
+                    <div class="indicator-compare-gap-card">
+                        <span>Comparativo</span>
+                        <strong>${formatPercent(Math.abs(stateValue - nationalValue))} de brecha</strong>
+                    </div>
+                    <div class="indicator-bar-combined">
+                        <div class="indicator-bar-panel">
+                            <span>${stateLabel}</span>
+                            <div class="indicator-bar-track">
+                                <div class="indicator-bar-fill state" style="width:${Math.max(0, Math.min(stateValue, 100))}%"></div>
+                            </div>
+                            <div class="indicator-bar-value">
+                                <span>Lectura estatal</span>
+                                <strong>${formatPercent(stateValue)}</strong>
+                            </div>
+                        </div>
+                        <div class="indicator-bar-panel">
+                            <span>${nationalLabel}</span>
+                            <div class="indicator-bar-track">
+                                <div class="indicator-bar-fill national" style="width:${Math.max(0, Math.min(nationalValue, 100))}%"></div>
+                            </div>
+                            <div class="indicator-bar-value">
+                                <span>Referencia nacional</span>
+                                <strong>${formatPercent(nationalValue)}</strong>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="indicator-compare-legend">
+                        <span><i class="state"></i>${stateLabel}</span>
+                        <span><i class="national"></i>${nationalLabel}</span>
+                    </div>
+                    ${noticeHtml}
+                </div>
+            `;
+
             if (!selected) {
-                container.innerHTML = '<div class="empty">Haz clic en un estado del mapa para ver indicadores y comparativo nacional.</div>';
+                const rows = indicatorLabels.map(([label, key]) => {
+                    const value = Number(national[key] || 0);
+                    return `
+                        <div class="indicator-compare-row">
+                            <div class="indicator-compare-label">
+                                <strong>${label}</strong>
+                                <span>Lectura inicial nacional</span>
+                            </div>
+                            ${renderCombinedMetricCell("Promedio nacional", value, "Porcentaje estatal", 0, renderIndicatorNotice(key))}
+                        </div>
+                    `;
+                }).join("");
+                container.innerHTML = `
+                    <div class="indicator-compare">
+                        <div class="indicator-compare-header">
+                            <div>Indicador</div>
+                            <div>Barra comparativa</div>
+                            <div>Porcentajes</div>
+                        </div>
+                        ${rows}
+                        ${renderIndicatorSource()}
+                    </div>
+                `;
+                return;
+            }
+            if (state.selectedService !== ALL_SERVICES_VALUE && !selected.services?.[state.selectedService]) {
+                const activeLabel = getServiceDisplayLabel(getServiceByCode(state.selectedService)) || state.selectedService;
+                container.innerHTML = `<div class="empty">${selected.name} no tiene datos para ${activeLabel} en este ciclo, por lo que no se muestran indicadores para esa selección.</div>`;
                 return;
             }
             const indicators = selected.indicators || {};
-            const national = state.data.national_indicators || {};
-            const rows = [
-                ["Cobertura", "cobertura"],
-                ["Tasa de absorcion", "absorcion"],
-                ["Tasa de abandono", "abandono"],
-                ["Tasa de reprobacion", "reprobacion"],
-                ["Tasa neta de escolarizacion", "escolarizacion"],
-                ["Tasa de terminacion", "terminacion"],
-            ].map(([label, key]) => `
-                <tr>
-                    <td>${label}</td>
-                    <td>${formatPercent(indicators[key])}</td>
-                    <td>${formatPercent(national[key])}</td>
-                    <td>${compareArrow(indicators[key] || 0, national[key] || 0)}</td>
-                </tr>
-            `).join("");
+            const rows = indicatorLabels.map(([label, key]) => {
+                const stateValue = Number(indicators[key] || 0);
+                const nationalValue = Number(national[key] || 0);
+
+                return `
+                    <div class="indicator-compare-row">
+                        <div class="indicator-compare-label">
+                            <strong>${label}</strong>
+                        </div>
+                        ${renderCombinedMetricCell("Promedio nacional", nationalValue, selected.name, stateValue, renderIndicatorNotice(key))}
+                    </div>
+                `;
+            }).join("");
             container.innerHTML = `
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Indicador</th>
-                            <th>${selected.name}</th>
-                            <th>Nacional</th>
-                            <th>Comp.</th>
-                        </tr>
-                    </thead>
-                    <tbody>${rows}</tbody>
-                </table>
+                <div class="indicator-compare">
+                    <div class="indicator-compare-header">
+                        <div>Indicador</div>
+                        <div>Barra comparativa</div>
+                        <div>Porcentajes</div>
+                    </div>
+                    ${rows}
+                    ${renderIndicatorSource()}
+                </div>
             `;
         }
 
-        function renderServiceChips() {
-            const wrap = document.getElementById("service-chips");
-            const selected = getSelectedEntity();
-            if (!selected) {
-                wrap.innerHTML = "";
-                return;
-            }
-            const chips = Object.values(selected.services || {})
-                .sort((a, b) => b.alumnos - a.alumnos)
-                .map((service) => `
-                    <button class="service-chip ${state.selectedService === service.code ? "active" : ""}" data-service="${service.code}">
-                        ${service.code}
-                    </button>
+        function renderEntityOptions() {
+            const select = document.getElementById("entity-select");
+            const entities = Object.entries(state.data?.entities || {})
+                .map(([nameKey, entity]) => ({ nameKey, entity }))
+                .sort((a, b) => a.entity.name.localeCompare(b.entity.name, "es"));
+
+            const options = ['<option value="">Todos los estados</option>'].concat(
+                entities.map(({ nameKey, entity }) => `
+                    <option value="${nameKey}" ${state.selectedEntityKey === entity.entity_key ? "selected" : ""}>${entity.name}</option>
                 `)
-                .join("");
-            wrap.innerHTML = chips || '<div class="empty">Sin servicios para esta entidad.</div>';
-            wrap.querySelectorAll(".service-chip").forEach((button) => {
-                button.addEventListener("click", () => {
-                    state.selectedService = button.dataset.service;
-                    document.getElementById("service-select").value = state.selectedService;
-                    renderOverview();
-                    renderServiceChips();
-                    renderServiceDetail();
-                });
+            );
+
+            select.innerHTML = options.join("");
+        }
+
+        function getSelectableServices() {
+            const selected = getSelectedEntity();
+            const catalog = state.data?.available_services || [];
+
+            if (!selected) {
+                return catalog.filter((service) => state.data?.national_services?.[service.code]);
+            }
+
+            return catalog.filter((service) => {
+                const item = selected.services?.[service.code];
+                if (!item) return false;
+                return Number(item.alumnos || 0) > 0
+                    || Number(item.mujeres || 0) > 0
+                    || Number(item.hombres || 0) > 0
+                    || Number(item.docentes || 0) > 0
+                    || Number(item.escuelas || 0) > 0;
             });
+        }
+
+        function renderServiceOptions() {
+            const select = document.getElementById("service-select");
+            const services = getSelectableServices();
+            const options = [
+                `<option value="${ALL_SERVICES_VALUE}">Todos los servicios</option>`,
+                ...services.map((service) => (
+                    `<option value="${service.code}">${getServiceCodeDisplayLabel(service.code)} | ${getServiceDisplayLabel(service)}</option>`
+                )),
+            ];
+
+            select.innerHTML = options.join("");
+
+            const selectedStillAvailable = state.selectedService === ALL_SERVICES_VALUE
+                || services.some((service) => service.code === state.selectedService);
+
+            if (!selectedStillAvailable) {
+                state.selectedService = ALL_SERVICES_VALUE;
+            }
+
+            select.value = state.selectedService;
+        }
+
+        function renderComparison3DChart(container, labels, values, colors, valueSuffixes = [], title = "", comparisonTotal = null) {
+            if (!container) return;
+            if (state.chart && typeof state.chart.dispose === "function") {
+                state.chart.dispose();
+            }
+            const normalizedValues = values.map((v) => toSafeNumber(v));
+            const normalizedComparisonTotal = toSafeNumber(comparisonTotal);
+            const isPercentComparison = normalizedComparisonTotal > 0;
+            container.classList.toggle("compact-bars", isPercentComparison || (Array.isArray(labels) && labels.length === 2));
+            container.classList.toggle("percent-bars", isPercentComparison);
+            const maxValue = Math.max(normalizedComparisonTotal || Math.max(...normalizedValues), 1);
+            const rows = labels.map((label, index) => {
+                const value = normalizedValues[index] || 0;
+                const width = Math.max(0, Math.min((value / maxValue) * 100, 100));
+                const color = colors[index] || getServiceColor(label, index);
+                const percentage = maxValue ? (value / maxValue) * 100 : 0;
+                const displayValue = isPercentComparison ? formatPercent(percentage) : formatNumber(value);
+                const suffix = !isPercentComparison && valueSuffixes[index] ? `<span class="bars3d-extra">${valueSuffixes[index]}</span>` : "";
+                return `
+                    <div class="bars3d-row">
+                        <div class="bars3d-label">${label}</div>
+                        <div class="bars3d-track">
+                            <div class="bars3d-bar" style="width:${width}%; background:${color};"></div>
+                        </div>
+                        <div class="bars3d-value">${displayValue}${suffix}</div>
+                    </div>
+                `;
+            }).join("");
+            const titleHtml = title ? `<div class="bars3d-title">${title}</div>` : "";
+            container.innerHTML = `${titleHtml}<div class="bars3d${isPercentComparison ? " percent-bars" : ""}">${rows}</div>`;
+
+            state.chart = {
+                dispose() {
+                    container.innerHTML = "";
+                },
+            };
         }
 
         function renderServiceDetail() {
             const container = document.getElementById("service-detail-content");
             const chartEl = document.getElementById("service-chart");
+            const chartSummary = document.getElementById("service-chart-summary");
+            const chartWrap = document.querySelector(".service-chart-wrap");
             const subtitle = document.getElementById("service-detail-subtitle");
             const selected = getSelectedEntity();
-            if (!selected) {
-                subtitle.textContent = "Selecciona una entidad para desplegar el resumen del servicio activo.";
-                container.innerHTML = "Selecciona un estado en el mapa para ver el resumen por servicio.";
-                chartEl.hidden = true;
-                if (state.chart) state.chart.destroy();
-                return;
-            }
-            const service = selected.services?.[state.selectedService] || Object.values(selected.services || {})[0];
-            if (!service) {
-                subtitle.textContent = `${selected.name} no tiene datos agregados para el servicio activo en este ciclo.`;
-                container.innerHTML = "La entidad seleccionada no tiene servicios agregados para este ciclo.";
-                chartEl.hidden = true;
-                if (state.chart) state.chart.destroy();
-                return;
-            }
-            state.selectedService = service.code;
-            subtitle.textContent = `Resumen de ${service.code} en ${selected.name}.`;
-            const national = state.data.national_services?.[service.code] || { alumnos: 0, mujeres: 0, hombres: 0, docentes: 0, escuelas: 0 };
-            const participation = national.alumnos ? ((service.alumnos / national.alumnos) * 100) : 0;
-            const womenShare = service.alumnos ? ((service.mujeres / service.alumnos) * 100) : 0;
-            const menShare = service.alumnos ? ((service.hombres / service.alumnos) * 100) : 0;
-            container.innerHTML = `
-                <div class="service-meta"><b>${service.code}</b> | ${service.label}</div>
-                <div class="service-grid">
-                    <div class="service-card"><strong>Matricula estatal</strong>${formatNumber(service.alumnos)}</div>
-                    <div class="service-card"><strong>Participacion nacional</strong>${formatPercent(participation)}</div>
-                    <div class="service-card"><strong>Docentes</strong>${formatNumber(service.docentes)}</div>
-                    <div class="service-card"><strong>Escuelas</strong>${formatNumber(service.escuelas)}</div>
-                    <div class="service-card"><strong>Mujeres</strong>${formatNumber(service.mujeres)} | ${formatPercent(womenShare)}</div>
-                    <div class="service-card"><strong>Hombres</strong>${formatNumber(service.hombres)} | ${formatPercent(menShare)}</div>
-                    <div class="service-card muted"><strong>Con discapacidad</strong>Sin dato en esta fuente</div>
-                    <div class="service-card muted"><strong>Poblacion indigena</strong>Sin dato en esta fuente</div>
-                </div>
-                <div class="service-note">La fuente actual importada desde Excel no incluye atributos de discapacidad o pertenencia indigena. El dashboard deja visible ese hueco para conectar una fuente futura sin redisenar la vista.</div>
-            `;
-            chartEl.hidden = false;
-            if (state.chart) state.chart.destroy();
-            state.chart = new Chart(chartEl.getContext("2d"), {
-                type: "doughnut",
-                data: {
-                    labels: [selected.name, "Resto del pais"],
-                    datasets: [{
-                        data: [service.alumnos, Math.max(national.alumnos - service.alumnos, 0)],
-                        backgroundColor: ["#0b6e69", "#d5e4e1"],
-                        borderColor: ["#0b6e69", "#d5e4e1"],
-                        borderWidth: 0,
-                    }],
-                },
-                options: {
-                    plugins: {
-                        legend: {
-                            position: "bottom",
-                            labels: {
-                                color: "#11202c",
-                                font: { size: 12 },
+            const nationalService = getNationalServiceData();
+            const applySingleServiceChartLayout = (isSingleService) => {
+                if (!chartWrap) return;
+                chartWrap.classList.toggle("single-service-layout", Boolean(isSingleService));
+            };
+            const createGenderChart = (canvas, womenCount, menCount, womenPct, menPct, sourceLabel = "Docentes") => {
+                if (state.genderChart) state.genderChart.destroy();
+                const isAdvisorChart = sourceLabel === "Asesores virtuales";
+                const getGenderTooltip = () => {
+                    let tooltipEl = document.getElementById("service-chart-tooltip");
+                    if (!tooltipEl) {
+                        tooltipEl = document.createElement("div");
+                        tooltipEl.id = "service-chart-tooltip";
+                        tooltipEl.className = "service-chart-tooltip";
+                        document.body.appendChild(tooltipEl);
+                    }
+                    return tooltipEl;
+                };
+                const genderTooltip = (context) => {
+                    const { chart, tooltip } = context;
+                    const tooltipEl = getGenderTooltip();
+                    if (!tooltip || tooltip.opacity === 0) {
+                        tooltipEl.style.opacity = 0;
+                        return;
+                    }
+                    const item = tooltip.dataPoints?.[0];
+                    if (!item) return;
+                    const data = item.dataset.data || [];
+                    const total = data.reduce((acc, value) => acc + Number(value || 0), 0);
+                    const current = Number(item.parsed || 0);
+                    const pct = total ? ((current / total) * 100) : 0;
+                    const color = item.dataset.backgroundColor?.[item.dataIndex] || "#ffffff";
+                    tooltipEl.innerHTML = `<span><i style="background:${color};"></i><b>${item.label}: ${formatPercent(pct)}</b></span>`;
+                    const bounds = chart.canvas.getBoundingClientRect();
+                    tooltipEl.style.left = `${bounds.left + tooltip.caretX}px`;
+                    tooltipEl.style.top = `${bounds.top + tooltip.caretY}px`;
+                    tooltipEl.style.opacity = 1;
+                };
+                state.genderChart = new Chart(canvas.getContext("2d"), {
+                    type: "doughnut",
+	                    data: {
+	                        labels: [
+	                            `Hombres (${formatNumber(menCount || 0)})`,
+	                            `Mujeres (${formatNumber(womenCount || 0)})`,
+	                        ],
+	                        datasets: [{
+	                            data: [menCount || 0, womenCount || 0],
+	                            backgroundColor: ["#4a698f", "#7a1f37"],
+	                            borderColor: ["#4a698f", "#7a1f37"],
+                            borderWidth: 0,
+                        }],
+                    },
+		                    options: {
+		                        plugins: {
+		                            tooltip: {
+                                    enabled: false,
+                                    external: genderTooltip,
+		                                callbacks: {
+		                                    label: (context) => {
+                                        const data = context.dataset.data || [];
+                                        const total = data.reduce((acc, value) => acc + Number(value || 0), 0);
+                                        const current = Number(context.parsed || 0);
+                                        const pct = total ? ((current / total) * 100) : 0;
+	                                        return `${context.label}: ${formatPercent(pct)}`;
+                                    },
+                                },
+	                            },
+	                            legend: {
+	                                display: false,
+	                                position: "bottom",
+	                                labels: {
+	                                    color: "#11202c",
+	                                    font: { size: 12 },
+	                                    boxWidth: 10,
+	                                    boxHeight: 10,
+                                        usePointStyle: true,
+                                        pointStyle: "circle",
+	                                    padding: 14,
+	                                },
                             },
                         },
+                        cutout: "62%",
                     },
-                    cutout: "64%",
-                },
-            });
-            renderOverview();
+                });
+            };
+            const toSafeNumber = (value) => {
+                if (value === null || value === undefined || value === "") return 0;
+                const normalized = typeof value === "string" ? value.replace(/,/g, "").trim() : value;
+                const numeric = Number(normalized);
+                return Number.isFinite(numeric) ? numeric : 0;
+            };
+            const getGenderChartData = (source) => {
+                const womenTeachers = toSafeNumber(source?.docentes_m);
+                const menTeachers = toSafeNumber(source?.docentes_h);
+                const teachersTotal = womenTeachers + menTeachers;
+                return {
+                    womenCount: womenTeachers,
+                    menCount: menTeachers,
+                    womenPct: teachersTotal ? ((womenTeachers / teachersTotal) * 100) : 0,
+                    menPct: teachersTotal ? ((menTeachers / teachersTotal) * 100) : 0,
+                    sourceLabel: "Docentes",
+                };
+            };
+            if (!selected && !nationalService) {
+                applySingleServiceChartLayout(false);
+                subtitle.textContent = "No hay datos agregados para el servicio activo en este ciclo.";
+                container.innerHTML = "No hay datos agregados disponibles para el servicio seleccionado.";
+                chartEl.hidden = true;
+                chartSummary.innerHTML = '<div class="empty">No hay comparativo nacional disponible para este servicio.</div>';
+                if (state.chart && typeof state.chart.dispose === "function") state.chart.dispose();
+                if (state.genderChart) state.genderChart.destroy();
+                return;
+            }
+            if (!selected) {
+                const totalAcrossServices = Object.values(state.data?.national_services || {}).reduce((acc, item) => acc + toSafeNumber(item.alumnos), 0);
+                const isAllServices = state.selectedService === ALL_SERVICES_VALUE;
+                const isPlSepService = !isAllServices && nationalService.code === "PL-SEP";
+                const isEmsadService = !isAllServices && nationalService.code === "EMSAD";
+                const isTbcService = !isAllServices && nationalService.code === "TBC";
+                const isCycle20242025 = state.data?.cycle === "2024-2025";
+                const nationalServiceStudents = toSafeNumber(nationalService.alumnos);
+                const serviceShareAcrossServices = totalAcrossServices ? ((nationalServiceStudents / totalAcrossServices) * 100) : 0;
+                const otherServices = Math.max(totalAcrossServices - nationalServiceStudents, 0);
+                const nationalGenderChart = getGenderChartData(nationalService);
+                const nationalGap = Math.abs((nationalService.mujeres || 0) - (nationalService.hombres || 0));
+                const plsepForeignWomen = toSafeNumber(nationalService.extranjeros_mujeres);
+                const plsepForeignMen = toSafeNumber(nationalService.extranjeros_hombres);
+                const plsepForeignTotal = toSafeNumber(nationalService.extranjeros_total);
+                const plsepReportedTotal = toSafeNumber(nationalService.total_estudiantes);
+                const plsepTotalWomen = toSafeNumber(nationalService.mujeres) + plsepForeignWomen;
+                const plsepTotalMen = toSafeNumber(nationalService.hombres) + plsepForeignMen;
+                const plsepForeignGap = Math.abs(plsepForeignWomen - plsepForeignMen);
+                const plsepTotalGap = Math.abs(plsepTotalWomen - plsepTotalMen);
+                const hasPlsepForeignData = isPlSepService && plsepReportedTotal > 0;
+                const nationalBreakdown = getServiceBreakdown(state.data?.national_services || {});
+                const isSingleServiceView = !isAllServices || (isAllServices && nationalBreakdown.length === 1);
+                applySingleServiceChartLayout(isSingleServiceView);
+                subtitle.textContent = isAllServices
+                    ? `Resumen nacional agregado para ${state.data.cycle}.`
+                    : `Resumen nacional de ${getServiceDisplayLabel(getServiceByCode(state.selectedService)) || state.selectedService} para ${state.data.cycle}.`;
+                container.innerHTML = `
+                    <div class="service-meta"><b>${isAllServices ? ALL_SERVICES_LABEL : getServiceCodeDisplayLabel(nationalService.code)}</b> | ${getServiceDisplayLabel(nationalService)}</div>
+                    <div class="service-grid">
+                        <div class="service-card featured wide">
+                            <strong>${isAllServices ? "Matrícula nacional total" : "Matrícula nacional"}</strong>
+                            <div class="service-subline">${isAllServices ? "Composición nacional agregada de todos los servicios educativos según su sexo." : "Composición nacional del servicio educativo activo según su sexo."}</div>
+                            <div class="service-split">
+	                                <div class="service-split-item stack">
+	                                    <strong>Matrícula nacional total</strong>
+	                                    <div class="service-big-number">${formatNumber(nationalService.alumnos)}</div>
+		                                    ${hasPlsepForeignData ? `<div class="service-footnote">Los estudiantes en el extranjero son <strong>${formatNumber(plsepForeignTotal)}</strong> y el total reportado en la 911 son <strong>${formatNumber(plsepReportedTotal)}</strong>.</div>` : ""}
+	                                </div>
+	                                <div class="service-split-item">
+	                                    <strong>Mujeres</strong>
+	                                    <div class="service-big-number">${formatNumber(nationalService.mujeres)}</div>
+		                                    ${hasPlsepForeignData ? `<div class="service-footnote">Las estudiantes en el extranjero son <strong>${formatNumber(plsepForeignWomen)}</strong> y el total de las estudiantes son <strong>${formatNumber(plsepTotalWomen)}</strong>.</div>` : ""}
+	                                </div>
+	                                <div class="service-split-item">
+	                                    <strong>Hombres</strong>
+	                                    <div class="service-big-number">${formatNumber(nationalService.hombres)}</div>
+		                                    ${hasPlsepForeignData ? `<div class="service-footnote">Los estudiantes en el extranjero son <strong>${formatNumber(plsepForeignMen)}</strong> y el total de los estudiantes son <strong>${formatNumber(plsepTotalMen)}</strong>.</div>` : ""}
+	                                </div>
+	                                <div class="service-split-item">
+	                                    <strong>Brecha absoluta</strong>
+	                                    <div class="service-big-number">${formatNumber(nationalGap)}</div>
+		                                    ${hasPlsepForeignData ? `<div class="service-footnote">La brecha absoluta de los estudiantes en el extranjero es de <strong>${formatNumber(plsepForeignGap)}</strong> y la brecha del total de estudiantes es <strong>${formatNumber(plsepTotalGap)}</strong>.</div>` : ""}
+	                                </div>
+                            </div>
+                            <div class="service-featured-body ${isPlSepService ? "plsep-layout" : ""}">
+                                <div class="service-card muted service-coverage-card">
+                                    <strong>${isAllServices ? "Cobertura del sistema" : "Peso del servicio en el sistema"}</strong>
+                                    <div class="progress-card-value">
+                                        <b>${formatPercent(serviceShareAcrossServices)}</b>
+                                        <span>Total: ${formatNumber(nationalServiceStudents)} de ${formatNumber(totalAcrossServices)}</span>
+                                    </div>
+                                    <div class="progress-track">
+                                        <div class="progress-fill accent" style="width:${Math.max(0, Math.min(serviceShareAcrossServices, 100))}%"></div>
+                                    </div>
+                                    <div class="service-footnote">${isAllServices ? "Vista agregada que cubre el 100% de la matrícula nacional disponible en la fuente." : `Participación de ${getServiceDisplayLabel(nationalService)} dentro del total nacional agregado de servicios educativos.`}</div>
+                                </div>
+		                                    ${isPlSepService ? `
+	                                        <div class="service-card muted service-metric-card">
+	                                            <strong>Asesores virtuales según su sexo*</strong>
+		                                    <canvas id="service-gender-chart" class="service-gender-chart"></canvas>
+	                                            <div class="service-gender-legend">
+	                                                <span><i style="background:#4a698f;"></i>Hombres (${formatNumber(nationalService.docentes_h || 0)})</span>
+	                                                <span><i style="background:#7a1f37;"></i>Mujeres (${formatNumber(nationalService.docentes_m || 0)})</span>
+	                                            </div>
+	                                        </div>
+	                                    ` : `
+	                                    <div class="service-card muted service-metric-card">
+	                                        <strong>Docentes</strong>
+	                                        <div class="service-big-number">${formatNumber(nationalService.docentes)}</div>
+                                        <div class="service-footnote">Total nacional de personal docente del servicio activo.</div>
+                                    </div>
+		                                    <div class="service-card muted service-metric-card">
+		                                        <strong>Docentes según su sexo</strong>
+			                                    <canvas id="service-gender-chart" class="service-gender-chart"></canvas>
+                                                <div class="service-gender-legend">
+                                                    <span><i style="background:#4a698f;"></i>Hombres (${formatNumber(nationalService.docentes_h || 0)})</span>
+                                                    <span><i style="background:#7a1f37;"></i>Mujeres (${formatNumber(nationalService.docentes_m || 0)})</span>
+                                                </div>
+		                                    </div>
+	                                    <div class="service-card muted service-metric-card">
+	                                        <strong>Escuelas</strong>
+	                                        <div class="service-big-number">${formatNumber(nationalService.escuelas)}</div>
+	                                        <div class="service-footnote">Planteles registrados a nivel nacional para el servicio activo.</div>
+                                        ${isTbcService && isCycle20242025 ? '<p class="service-footnote">El total registrado es de <strong>3,289</strong> planteles; sin embargo, un plantel de TBC no reportó información en el levantamiento 911 de este ciclo escolar.</p>' : ""}
+                                        ${isEmsadService && isCycle20242025 ? '<p class="service-footnote">El total es de <strong>1,222</strong> planteles; sin embargo, un EMSaD no reportó información en el levantamiento 911 de este ciclo escolar.</p>' : ""}
+	                                    </div>
+	                                `}
+                            </div>
+                        </div>
+                        <div class="service-mini-grid">
+                            ${isPlSepService ? `
+                                <div class="service-card muted">
+                                    <strong>Asesores virtuales*</strong>
+                                    <div class="service-big-number">${formatNumber(nationalService.docentes)}</div>
+                                    <div class="service-footnote">Total nacional de personal docente del servicio activo.</div>
+                                </div>
+                                <div class="service-card muted">
+                                    <strong>Escuelas*</strong>
+                                    <div class="service-big-number">${formatNumber(nationalService.escuelas)}</div>
+                                    <div class="service-footnote">PL-SEP opera como una sola escuela virtual de alcance nacional.</div>
+                                </div>
+                                <div class="service-card muted">
+                                    <strong>Con discapacidad*</strong>
+                                    <div class="service-big-number">${formatNumber(nationalService.con_discapacidad || 0)}</div>
+                                    <div class="service-footnote">${nationalService.atributos_plsep_nacionales ? "Total nacional reportado por la fuente complementaria PL-SEP." : "Sin dato disponible en la fuente complementaria para este ciclo."}</div>
+                                </div>
+                                <div class="service-card muted">
+                                    <strong>Población indígena*</strong>
+                                    <div class="service-big-number">${formatNumber(nationalService.poblacion_indigena || 0)}</div>
+                                    <div class="service-footnote">${nationalService.atributos_plsep_nacionales ? "Hablantes de lenguas indígenas reportados a nivel nacional para PL-SEP." : "Sin dato disponible en la fuente complementaria para este ciclo."}</div>
+                                </div>
+                            ` : ""}
+                        </div>
+                    </div>
+                    ${isPlSepService ? '<div class="service-note">*Los datos presentados corresponden al total general del Servicio Nacional de Bachillerato en Línea, Prepa en Línea-SEP para el ciclo de referencia.<br><strong>Fuente:</strong> Dirección de Planeación, Evaluación y Estadística del Servicio Nacional de Bachillerato en Línea, Prepa en Línea-SEP.</div>' : (isAllServices ? '<div class="service-note">Vista inicial agregada para todos los estados y todos los servicios educativos.</div>' : '')}
+                `;
+                const genderChartEl = document.getElementById("service-gender-chart");
+                if (genderChartEl) {
+                    createGenderChart(
+                        genderChartEl,
+                        nationalGenderChart.womenCount,
+                        nationalGenderChart.menCount,
+                        nationalGenderChart.womenPct,
+                        nationalGenderChart.menPct,
+	                        isPlSepService ? "Asesores virtuales" : nationalGenderChart.sourceLabel
+                    );
+                } else if (state.genderChart) {
+                    state.genderChart.destroy();
+                    state.genderChart = null;
+                }
+                chartEl.hidden = false;
+                chartSummary.innerHTML = isAllServices
+                    ? nationalBreakdown.map((service, index) => (
+                        renderChartAccordionItem(
+                            service,
+                            totalAcrossServices,
+                            getServiceColor(service.code, index),
+                            index === 0
+                        )
+                    )).join("")
+                    : `
+                        ${renderChartAccordionItem(nationalService, totalAcrossServices, getServiceColor(nationalService.code, 0), true)}
+                        <div class="chart-accordion-item">
+                            <div class="chart-accordion-summary static-summary">
+                                <span class="chart-summary-label">
+                                    <span class="chart-summary-dot" style="background:#8aa0b8;"></span>
+                                    Resto de servicios
+                                </span>
+                                <strong class="chart-summary-value">${formatNumber(otherServices)}</strong>
+                            </div>
+                        </div>
+                    `;
+                renderComparison3DChart(
+                    chartEl,
+                    isAllServices ? nationalBreakdown.map((service) => getServiceCodeDisplayLabel(service.code)) : [getServiceCodeDisplayLabel(nationalService.code)],
+                    isAllServices ? nationalBreakdown.map((service) => service.alumnos) : [nationalService.alumnos],
+                    isAllServices ? nationalBreakdown.map((service, index) => getServiceColor(service.code, index)) : [getServiceColor(nationalService.code, 0)],
+                    isAllServices ? [] : [`Resto de servicios: ${formatNumber(otherServices)}`],
+                    isAllServices ? "" : `${getServiceCodeDisplayLabel(nationalService.code)} | ${getServiceDisplayLabel(nationalService)}`,
+                    totalAcrossServices
+                );
+                return;
+            }
+            const isAllServices = state.selectedService === ALL_SERVICES_VALUE;
+            const selectedServiceMap = selected.services || {};
+            const service = isAllServices
+                ? aggregateServiceMap(selectedServiceMap, ALL_SERVICES_LABEL)
+                : (selectedServiceMap[state.selectedService] || null);
+            if (!service) {
+                applySingleServiceChartLayout(false);
+                const activeLabel = getServiceDisplayLabel(getServiceByCode(state.selectedService)) || state.selectedService;
+                subtitle.textContent = `${selected.name} no tiene datos agregados para ${activeLabel} en este ciclo.`;
+                container.innerHTML = `La entidad seleccionada no tiene datos agregados para ${activeLabel} en este ciclo.`;
+                chartEl.hidden = true;
+                chartSummary.innerHTML = `<div class="empty">${selected.name} no tiene datos comparables para ${activeLabel} en este ciclo.</div>`;
+                if (state.chart && typeof state.chart.dispose === "function") state.chart.dispose();
+                if (state.genderChart) state.genderChart.destroy();
+                return;
+            }
+            if (!isAllServices) {
+                state.selectedService = service.code;
+            }
+            subtitle.textContent = isAllServices
+                ? `Resumen agregado de todos los servicios en ${selected.name}.`
+                : `Resumen de ${getServiceDisplayLabel(service)} en ${selected.name}.`;
+            const national = isAllServices
+                ? aggregateServiceMap(state.data?.national_services || {}, ALL_SERVICES_LABEL)
+                : (state.data.national_services?.[service.code] || { alumnos: 0, mujeres: 0, hombres: 0, docentes: 0, docentes_m: 0, docentes_h: 0, escuelas: 0 });
+            const serviceStudents = toSafeNumber(service.alumnos);
+            const nationalStudents = toSafeNumber(national.alumnos);
+            const serviceTeachers = toSafeNumber(service.docentes);
+            const nationalTeachers = toSafeNumber(national.docentes);
+            const serviceSchools = toSafeNumber(service.escuelas);
+            const nationalSchools = toSafeNumber(national.escuelas);
+            const participation = nationalStudents ? ((serviceStudents / nationalStudents) * 100) : 0;
+            const restOfCountry = Math.max(nationalStudents - serviceStudents, 0);
+            const restShare = nationalStudents ? ((restOfCountry / nationalStudents) * 100) : 0;
+            const serviceGenderChart = getGenderChartData(service);
+            const genderGap = Math.abs((service.mujeres || 0) - (service.hombres || 0));
+            const isPlSepService = !isAllServices && service.code === "PL-SEP";
+            const nationalGenderGap = Math.abs((national.mujeres || 0) - (national.hombres || 0));
+            const summaryStudents = service.alumnos;
+            const summaryWomen = service.mujeres;
+            const summaryMen = service.hombres;
+            const summaryGap = genderGap;
+            const docentesShare = nationalTeachers ? ((serviceTeachers / nationalTeachers) * 100) : 0;
+            const escuelasShare = nationalSchools ? ((serviceSchools / nationalSchools) * 100) : 0;
+            const selectedBreakdown = getServiceBreakdown(selectedServiceMap);
+            const isSingleServiceView = !isAllServices || (isAllServices && selectedBreakdown.length === 1);
+            applySingleServiceChartLayout(isSingleServiceView);
+            container.innerHTML = `
+                <div class="service-meta"><b>${isAllServices ? ALL_SERVICES_LABEL : getServiceCodeDisplayLabel(service.code)}</b> | ${getServiceDisplayLabel(service)}</div>
+                <div class="service-grid">
+		                    <div class="service-card featured wide">
+		                        <strong>${isAllServices ? "Matrícula estatal total" : "Matrícula estatal"}</strong>
+		                        <div class="service-subline">${isAllServices ? "Composición del total estatal agregado de todos los servicios según su sexo." : "Composición del total estatal del servicio activo según su sexo."}</div>
+	                            <div class="service-split">
+	                                <div class="service-split-item stack">
+		                                    <strong>${isAllServices ? "Matrícula estatal total" : "Matrícula estatal"}</strong>
+	                                    <div class="service-big-number">${formatNumber(summaryStudents)}</div>
+	                                    <div class="service-footnote">${isPlSepService ? `Dato nacional PL-SEP. Comparativo nacional:<br class="service-footnote-mobile-break">${formatNumber(national.alumnos)}.` : `Comparativo nacional:<br class="service-footnote-mobile-break">${formatNumber(national.alumnos)}.`}</div>
+	                                </div>
+	                                <div class="service-split-item">
+	                                    <strong>Mujeres</strong>
+	                                    <div class="service-big-number">${formatNumber(summaryWomen)}</div>
+	                                    <div class="service-footnote">${isPlSepService ? `Dato nacional PL-SEP. Comparativo nacional: ${formatNumber(national.mujeres)}.` : `Comparativo nacional: ${formatNumber(national.mujeres)}.`}</div>
+	                                </div>
+	                                <div class="service-split-item">
+	                                    <strong>Hombres</strong>
+	                                    <div class="service-big-number">${formatNumber(summaryMen)}</div>
+	                                    <div class="service-footnote">${isPlSepService ? `Dato nacional PL-SEP. Comparativo nacional: ${formatNumber(national.hombres)}.` : `Comparativo nacional: ${formatNumber(national.hombres)}.`}</div>
+	                                </div>
+	                                <div class="service-split-item">
+	                                    <strong>Brecha absoluta</strong>
+	                                    <div class="service-big-number">${formatNumber(summaryGap)}</div>
+	                                    <div class="service-footnote">${isPlSepService ? `Dato nacional PL-SEP. Comparativo nacional: ${formatNumber(nationalGenderGap)}.` : `Comparativo nacional: ${formatNumber(nationalGenderGap)}.`}</div>
+	                                </div>
+                            </div>
+                        <div class="service-featured-body ${isPlSepService ? "plsep-layout" : ""}">
+                            <div class="service-card muted service-coverage-card">
+                                <strong>${isAllServices ? "Participación nacional agregada" : "Participación nacional"}</strong>
+                                <div class="progress-card-value">
+                                    <b>${formatPercent(participation)}</b>
+                                    <span>Total: ${formatNumber(serviceStudents)} de ${formatNumber(nationalStudents)}</span>
+                                </div>
+                                <div class="progress-track">
+                                    <div class="progress-fill accent" style="width:${Math.max(0, Math.min(participation, 100))}%"></div>
+                                </div>
+                                <div class="service-footnote">${isAllServices ? `Peso de la matrícula total de ${selected.name} respecto del agregado nacional de todos los servicios.` : `Peso de ${getServiceDisplayLabel(service)} en ${selected.name} respecto del total nacional del mismo servicio.`}</div>
+                            </div>
+	                            ${isPlSepService ? `
+                                    <div class="service-card muted service-metric-card">
+                                        <strong>Asesores virtuales según su sexo*</strong>
+	                                    <canvas id="service-gender-chart" class="service-gender-chart"></canvas>
+                                        <div class="service-gender-legend">
+                                            <span><i style="background:#4a698f;"></i>Hombres (${formatNumber(national.docentes_h || 0)})</span>
+                                            <span><i style="background:#7a1f37;"></i>Mujeres (${formatNumber(national.docentes_m || 0)})</span>
+                                        </div>
+                                    </div>
+                                ` : `
+	                                <div class="service-card muted service-metric-card">
+	                                    <strong>Docentes</strong>
+                                    <div class="service-big-number">${formatNumber(service.docentes)}</div>
+                                    <div class="service-footnote">Comparativo nacional: ${formatNumber(national.docentes)} (${formatPercent(docentesShare)} del total nacional).</div>
+                                </div>
+	                                    <div class="service-card muted service-metric-card">
+	                                        <strong>Docentes según su sexo</strong>
+		                                    <canvas id="service-gender-chart" class="service-gender-chart"></canvas>
+                                            <div class="service-gender-legend">
+                                                <span><i style="background:#4a698f;"></i>Hombres (${formatNumber(service.docentes_h || 0)})</span>
+                                                <span><i style="background:#7a1f37;"></i>Mujeres (${formatNumber(service.docentes_m || 0)})</span>
+                                            </div>
+	                                    </div>
+                                <div class="service-card muted service-metric-card">
+                                    <strong>Escuelas</strong>
+                                    <div class="service-big-number">${formatNumber(service.escuelas)}</div>
+                                    <div class="service-footnote">Comparativo nacional: ${formatNumber(national.escuelas)} (${formatPercent(escuelasShare)} del total nacional).</div>
+                                </div>
+                            `}
+                        </div>
+                    </div>
+                    <div class="service-mini-grid">
+                        ${isPlSepService ? `
+                            <div class="service-card muted">
+                                <strong>Asesores virtuales*</strong>
+                                <div class="service-big-number">${formatNumber(service.docentes)}</div>
+                                <div class="service-footnote">Comparativo nacional: ${formatNumber(national.docentes)} (${formatPercent(docentesShare)} del total nacional).</div>
+                            </div>
+                            <div class="service-card muted">
+                                <strong>Escuelas*</strong>
+                                <div class="service-big-number">${formatNumber(service.escuelas)}</div>
+                                <div class="service-footnote">Para referencia territorial se contabiliza una sola escuela virtual de alcance nacional.</div>
+                            </div>
+                            <div class="service-card muted">
+                                <strong>Con discapacidad*</strong>
+                                <div class="service-subline">Dato nacional PL-SEP</div>
+                                <div class="service-big-number">${formatNumber(national.con_discapacidad || 0)}</div>
+                                <div class="service-footnote">${national.atributos_plsep_nacionales ? "Dato disponible sólo a nivel nacional para PL-SEP; no existe desglose estatal en la fuente complementaria." : "Sin dato disponible en la fuente complementaria para este ciclo."}</div>
+                            </div>
+                            <div class="service-card muted">
+                                <strong>Población indígena*</strong>
+                                <div class="service-subline">Dato nacional PL-SEP</div>
+                                <div class="service-big-number">${formatNumber(national.poblacion_indigena || 0)}</div>
+                                <div class="service-footnote">${national.atributos_plsep_nacionales ? "Dato disponible sólo a nivel nacional para PL-SEP; no existe desglose estatal en la fuente complementaria." : "Sin dato disponible en la fuente complementaria para este ciclo."}</div>
+                            </div>
+                        ` : ""}
+                    </div>
+                </div>
+                ${isPlSepService ? '<div class="service-note">*Los datos presentados corresponden al total general del Servicio Nacional de Bachillerato en Línea, Prepa en Línea-SEP para el ciclo de referencia.<br><strong>Fuente:</strong> Dirección de Planeación, Evaluación y Estadística del Servicio Nacional de Bachillerato en Línea, Prepa en Línea-SEP.</div>' : ""}
+            `;
+            const genderChartEl = document.getElementById("service-gender-chart");
+            if (genderChartEl) {
+                const chartGenderData = isPlSepService ? getGenderChartData(national) : serviceGenderChart;
+                createGenderChart(
+                    genderChartEl,
+                    chartGenderData.womenCount,
+                    chartGenderData.menCount,
+                    chartGenderData.womenPct,
+                    chartGenderData.menPct,
+                    isPlSepService ? "Asesores virtuales" : chartGenderData.sourceLabel
+                );
+            } else if (state.genderChart) {
+                state.genderChart.destroy();
+                state.genderChart = null;
+            }
+            chartEl.hidden = false;
+            chartSummary.innerHTML = isAllServices
+                ? selectedBreakdown.map((item, index) => (
+                    renderChartAccordionItem(
+                        item,
+                        service.alumnos,
+                        getServiceColor(item.code, index),
+                        index === 0
+                    )
+                )).join("")
+                : `
+                    ${renderChartAccordionItem(service, national.alumnos, getServiceColor(service.code, 0), true)}
+                    <div class="chart-accordion-item">
+                        <div class="chart-accordion-summary static-summary">
+                            <span class="chart-summary-label">
+                                <span class="chart-summary-dot" style="background:#8aa0b8;"></span>
+                                Resto del país
+                                </span>
+                                <strong class="chart-summary-value">${formatNumber(restOfCountry)}</strong>
+                            </div>
+                        </div>
+                `;
+            renderComparison3DChart(
+                chartEl,
+                isAllServices ? selectedBreakdown.map((item) => getServiceCodeDisplayLabel(item.code)) : [getServiceCodeDisplayLabel(service.code)],
+                isAllServices ? selectedBreakdown.map((item) => item.alumnos) : [service.alumnos],
+                isAllServices ? selectedBreakdown.map((item, index) => getServiceColor(item.code, index)) : [getServiceColor(service.code, 0)],
+                isAllServices ? [] : [`Resto del país: ${formatNumber(restOfCountry)}`],
+                isAllServices ? "" : `${getServiceCodeDisplayLabel(service.code)} | ${getServiceDisplayLabel(service)}`,
+                isAllServices ? serviceStudents : nationalStudents
+            );
         }
 
         function updateSelection(nameKey) {
+            if (!nameKey) {
+                state.selectedEntityKey = null;
+                setText("active-state", "Ninguno");
+                setText("selected-entity", "Nacional");
+                setText("selection-pill-value", "Nacional");
+                document.getElementById("entity-select").value = "";
+                renderServiceOptions();
+                renderIndicators();
+                renderServiceDetail();
+                renderMobileMapCard();
+                renderDesktopHoverCard(null);
+                state.layers.forEach((layer) => layer.setStyle(baseStyle));
+                return;
+            }
             const entity = state.data.entities[nameKey];
             if (!entity) return;
             state.selectedEntityKey = entity.entity_key;
-            document.getElementById("active-state").textContent = entity.name;
-            document.getElementById("selected-entity").textContent = entity.name;
-            document.getElementById("selection-pill-value").textContent = entity.name;
+            setText("active-state", entity.name);
+            setText("selected-entity", entity.name);
+            setText("selection-pill-value", entity.name);
+            document.getElementById("entity-select").value = nameKey;
+            renderServiceOptions();
+            renderFilterNotice();
             renderIndicators();
-            renderServiceChips();
             renderServiceDetail();
-            state.layers.forEach((layer, key) => layer.setStyle(key === nameKey ? activeStyle : baseStyle));
+            renderMobileMapCard();
+            renderDesktopHoverCard(null);
+            state.layers.forEach((layer, key) => {
+                layer.setStyle(key === nameKey ? activeStyle : baseStyle);
+            });
         }
 
         async function loadMapData() {
-            const response = await fetch(`/api/map-data/?ciclo=${encodeURIComponent(state.cycle)}`);
+            const apiUrl = `{% url 'map-data' %}?ciclo=${encodeURIComponent(state.cycle)}`;
+            const response = await fetch(apiUrl, {
+                headers: { "Accept": "application/json" },
+            });
+            const contentType = response.headers.get("content-type") || "";
+            if (!response.ok) {
+                const text = await response.text();
+                throw new Error(`API ${response.status}: ${text.slice(0, 160)}`);
+            }
+            if (!contentType.includes("application/json")) {
+                const text = await response.text();
+                throw new Error(`La API no devolvió JSON. Respuesta inicial: ${text.slice(0, 160)}`);
+            }
             state.data = await response.json();
             document.getElementById("active-cycle").textContent = state.data.cycle;
+            renderFilterNotice();
             if (state.selectedEntityKey) {
                 const selected = getSelectedEntity();
                 if (!selected) {
                     state.selectedEntityKey = null;
-                    document.getElementById("active-state").textContent = "Ninguno";
-                    document.getElementById("selected-entity").textContent = "Ninguna";
-                    document.getElementById("selection-pill-value").textContent = "Ninguna";
+                    setText("active-state", "Ninguno");
+                    setText("selected-entity", "Nacional");
+                    setText("selection-pill-value", "Nacional");
                 }
             }
-            renderOverview();
+            renderEntityOptions();
+            renderServiceOptions();
             renderIndicators();
-            renderServiceChips();
             renderServiceDetail();
+            renderMobileMapCard();
+            renderDesktopHoverCard(null);
             state.layers.forEach((layer, key) => {
-                const entity = state.data.entities[key];
                 layer.unbindTooltip();
-                layer.bindTooltip(entity ? tooltipHtml(entity) : "<strong>Sin datos</strong>", { sticky: true });
+                layer.unbindPopup();
             });
         }
 
@@ -925,13 +4428,87 @@
 
         document.getElementById("service-select").addEventListener("change", (event) => {
             state.selectedService = event.target.value;
-            renderOverview();
-            renderServiceChips();
+            renderFilterNotice();
             renderServiceDetail();
         });
 
-        fetch("/static/data/mexicoHigh.json")
-            .then((response) => response.json())
+        document.getElementById("entity-select").addEventListener("change", (event) => {
+            updateSelection(event.target.value);
+        });
+
+        document.getElementById("reset-filters").addEventListener("click", async (event) => {
+            const button = event.currentTarget;
+            button.classList.add("is-resetting");
+            try {
+                state.cycle = state.defaultCycle;
+                state.selectedService = state.defaultService;
+                state.selectedEntityKey = null;
+                document.getElementById("cycle-select").value = state.defaultCycle;
+                document.getElementById("service-select").value = state.defaultService;
+                document.getElementById("entity-select").value = "";
+                setText("active-state", "Ninguno");
+                setText("selected-entity", "Nacional");
+                setText("selection-pill-value", "Nacional");
+                await loadMapData();
+                state.layers.forEach((layer) => layer.setStyle(baseStyle));
+            } finally {
+                button.classList.remove("is-resetting");
+            }
+        });
+
+        function toggleFiltersAccordion() {
+            const panel = document.querySelector(".filters-panel");
+            panel.classList.toggle("expanded");
+            syncFiltersAccordion();
+        }
+
+        const institutionalBar = document.querySelector(".institutional-bar");
+        function syncStickyHeaderState() {
+            if (!institutionalBar) return;
+            const headerOffset = parseFloat(
+                getComputedStyle(document.documentElement).getPropertyValue("--gov-header-offset")
+            ) || 0;
+            document.body.classList.toggle(
+                "header-bar-hidden",
+                institutionalBar.getBoundingClientRect().bottom <= headerOffset
+            );
+        }
+
+        const filtersToggle = document.getElementById("filters-toggle");
+        filtersToggle.addEventListener("click", toggleFiltersAccordion);
+        filtersToggle.addEventListener("touchstart", (event) => {
+            event.preventDefault();
+            toggleFiltersAccordion();
+        }, { passive: false });
+
+        window.addEventListener("resize", () => {
+            syncFiltersAccordion();
+            syncStickyHeaderState();
+            if (isMobileLayout()) {
+                map.dragging.enable();
+                map.touchZoom.enable();
+                map.doubleClickZoom.enable();
+                if (map.tap) map.tap.enable();
+            } else {
+                map.dragging.disable();
+                map.touchZoom.disable();
+                map.doubleClickZoom.disable();
+                if (map.tap) map.tap.disable();
+            }
+            fitMapToViewport();
+        });
+        window.addEventListener("scroll", syncStickyHeaderState, { passive: true });
+        syncFiltersAccordion(false);
+        syncStickyHeaderState();
+
+        fetch("{% static 'data/mexicoHigh.json' %}")
+            .then(async (response) => {
+                if (!response.ok) {
+                    const text = await response.text();
+                    throw new Error(`GeoJSON ${response.status}: ${text.slice(0, 160)}`);
+                }
+                return response.json();
+            })
             .then((geojson) => {
                 L.geoJSON(geojson, {
                     style: baseStyle,
@@ -940,11 +4517,20 @@
                         state.layers.set(key, layer);
                         layer.on("click", () => updateSelection(key));
                         layer.on("mouseover", function () {
+                            if (isMobileLayout()) return;
+                            const center = layer.getBounds().getCenter();
+                            const isRightSide = center.lng >= -102.5;
+                            renderDesktopHoverCard(
+                                state.data?.entities?.[key] || null,
+                                isRightSide ? "corner-bottom-left" : "corner-top-right"
+                            );
                             if (state.selectedEntityKey !== state.data?.entities?.[key]?.entity_key) {
                                 this.setStyle(activeStyle);
                             }
                         });
                         layer.on("mouseout", function () {
+                            if (isMobileLayout()) return;
+                            renderDesktopHoverCard(null);
                             if (state.selectedEntityKey !== state.data?.entities?.[key]?.entity_key) {
                                 this.setStyle(baseStyle);
                             }

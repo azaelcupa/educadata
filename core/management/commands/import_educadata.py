@@ -20,6 +20,38 @@ INDICATOR_FIELDS = {
     "Tasa de terminación ": "tasa_terminacion",
 }
 
+REQUIRED_HEADERS = [
+    "ENTIDAD",
+    "C_NOM_ENT",
+    "CV_MUN",
+    "C_NOM_MUN",
+    "CV_LOC",
+    "C_NOM_LOC",
+    "PLANTEL",
+    "ESCUELA",
+    "NOMESCUELA",
+    "CONTROL",
+    "MODALIDAD",
+    "C_SUBCONTROL",
+    "NIVEL",
+    "SUBNIVEL",
+    "ESCUELAS",
+    "ALUMNOS",
+    "MUJERES",
+    "HOMBRES",
+    "DOCENTES",
+    "DOCENTES_M",
+    "DOCENTES_H",
+    "sigla",
+    "CICLO",
+    "Cobertura",
+    "Tasa de absorción",
+    "Tasa de abandono escolar",
+    "Tasa de reprobación ",
+    "Tasa neta de escolarización ",
+    "Tasa de terminación ",
+]
+
 
 def normalize_text(value):
     if value is None:
@@ -77,7 +109,8 @@ def parse_float(value):
     text = normalize_text(value)
     if text == "":
         return None
-    return float(text)
+    normalized = text.replace("%", "").replace(",", "")
+    return float(normalized)
 
 
 def col_letters(cell_ref):
@@ -152,11 +185,18 @@ class Command(BaseCommand):
         parser.add_argument("--path", required=True, help="Ruta absoluta al archivo XLSX.")
         parser.add_argument("--dry-run", action="store_true", help="Analiza y resume sin escribir en MongoDB.")
         parser.add_argument("--drop", action="store_true", help="Elimina las colecciones destino antes de importar.")
+        parser.add_argument("--cycle", help="Limita la importacion al ciclo indicado, por ejemplo 2024-2025.")
+        parser.add_argument(
+            "--replace-cycles",
+            action="store_true",
+            help="Elimina primero la matricula e indicadores de los ciclos importados para evitar registros obsoletos.",
+        )
 
     def handle(self, *args, **options):
         source_path = Path(options["path"]).expanduser()
         if not source_path.exists():
             raise CommandError(f"No existe el archivo: {source_path}")
+        requested_cycle = normalize_text(options.get("cycle"))
 
         db = get_mongo_database()
         collections = [
@@ -206,6 +246,8 @@ class Command(BaseCommand):
                     continue
 
                 header_map = {value: col for col, value in header_row.items()}
+                if any(required_header not in header_map for required_header in REQUIRED_HEADERS):
+                    continue
 
                 for row in rows:
                     entity_key = normalize_text(row.get(header_map["ENTIDAD"], ""))
@@ -224,6 +266,8 @@ class Command(BaseCommand):
                     subnivel = normalize_text(row.get(header_map["SUBNIVEL"], ""))
                     sigla = normalize_text(row.get(header_map["sigla"], ""))
                     ciclo = normalize_text(row.get(header_map["CICLO"], ""))
+                    if requested_cycle and ciclo != requested_cycle:
+                        continue
 
                     option_sets["control"].add(control)
                     option_sets["modalidad"].add(modalidad)
@@ -251,7 +295,10 @@ class Command(BaseCommand):
                             "nombre": locality_name,
                         }
 
-                    plantel_key = plantel_cct or school_key
+                    # Some services like PL-SEP reuse the same school code across entities and
+                    # leave PLANTEL empty; include the entity in the fallback key to avoid
+                    # collapsing all states into a single Mongo document.
+                    plantel_key = plantel_cct or (f"{entity_key}:{school_key}" if entity_key and school_key else school_key)
                     planteles[plantel_key] = {
                         "plantel_cct": plantel_key,
                         "escuela_clave": school_key,
@@ -267,17 +314,31 @@ class Command(BaseCommand):
                         "sigla": sigla,
                     }
 
-                    matricula[(plantel_key, ciclo)] = {
-                        "plantel_cct": plantel_key,
-                        "ciclo": ciclo,
-                        "escuelas": parse_int(row.get(header_map["ESCUELAS"], "")),
-                        "alumnos": parse_int(row.get(header_map["ALUMNOS"], "")),
-                        "mujeres": parse_int(row.get(header_map["MUJERES"], "")),
-                        "hombres": parse_int(row.get(header_map["HOMBRES"], "")),
-                        "docentes": parse_int(row.get(header_map["DOCENTES"], "")),
-                        "docentes_m": parse_int(row.get(header_map["DOCENTES_M"], "")),
-                        "docentes_h": parse_int(row.get(header_map["DOCENTES_H"], "")),
-                    }
+                    matricula_key = (plantel_key, ciclo)
+                    current_enrollment = matricula.setdefault(
+                        matricula_key,
+                        {
+                            "plantel_cct": plantel_key,
+                            "ciclo": ciclo,
+                            "escuelas": 0,
+                            "alumnos": 0,
+                            "mujeres": 0,
+                            "hombres": 0,
+                            "docentes": 0,
+                            "docentes_m": 0,
+                            "docentes_h": 0,
+                        },
+                    )
+                    for source_field, target_field in (
+                        ("ESCUELAS", "escuelas"),
+                        ("ALUMNOS", "alumnos"),
+                        ("MUJERES", "mujeres"),
+                        ("HOMBRES", "hombres"),
+                        ("DOCENTES", "docentes"),
+                        ("DOCENTES_M", "docentes_m"),
+                        ("DOCENTES_H", "docentes_h"),
+                    ):
+                        current_enrollment[target_field] += parse_int(row.get(header_map[source_field], "")) or 0
 
                     indicator_key = (entity_key, ciclo)
                     if indicator_key not in entity_indicator_seen:
@@ -291,40 +352,49 @@ class Command(BaseCommand):
 
                         indicators[indicator_key] = indicator_doc
 
+        counters["catalog_entidades"] = len(entities)
+        counters["catalog_municipios"] = len(municipalities)
+        counters["catalog_localidades"] = len(localities)
+        counters["planteles"] = len(planteles)
+        counters["matricula_plantel_ciclo"] = len(matricula)
+        counters["indicadores_entidad_ciclo"] = len(indicators)
+        counters["catalog_opciones"] = sum(1 for values in option_sets.values() for value in values if value)
+        imported_cycles = sorted(cycle for cycle in option_sets["ciclo"] if cycle)
+        if requested_cycle and requested_cycle not in option_sets["ciclo"]:
+            raise CommandError(f"El archivo no contiene filas para el ciclo {requested_cycle}.")
+
+        deleted_counts = {}
         if not options["dry_run"]:
+            if options["replace_cycles"] and imported_cycles:
+                deleted_counts = self.delete_cycle_bound_documents(db, imported_cycles)
+
             self.bulk_upsert(db.catalog_entidades, "clave", entities.values())
-            counters["catalog_entidades"] = len(entities)
 
             self.bulk_upsert(
                 db.catalog_municipios,
                 ["entidad_clave", "clave"],
                 municipalities.values(),
             )
-            counters["catalog_municipios"] = len(municipalities)
 
             self.bulk_upsert(
                 db.catalog_localidades,
                 ["entidad_clave", "municipio_clave", "clave"],
                 localities.values(),
             )
-            counters["catalog_localidades"] = len(localities)
 
             self.bulk_upsert(db.planteles, "plantel_cct", planteles.values())
-            counters["planteles"] = len(planteles)
 
             self.bulk_upsert(
                 db.matricula_plantel_ciclo,
                 ["plantel_cct", "ciclo"],
                 matricula.values(),
             )
-            counters["matricula_plantel_ciclo"] = len(matricula)
 
             self.bulk_upsert(
                 db.indicadores_entidad_ciclo,
                 ["entidad_clave", "ciclo"],
                 indicators.values(),
             )
-            counters["indicadores_entidad_ciclo"] = len(indicators)
 
             option_ops = []
             for option_type, values in option_sets.items():
@@ -340,14 +410,17 @@ class Command(BaseCommand):
                     )
             if option_ops:
                 db.catalog_opciones.bulk_write(option_ops, ordered=False)
-                counters["catalog_opciones"] = len(option_ops)
             self.ensure_indexes(db)
 
         self.stdout.write(self.style.SUCCESS("Importacion analizada correctamente."))
         self.stdout.write(f"Archivo: {source_path}")
-        self.stdout.write(f"Ciclos procesados: {len(option_sets['ciclo'])}")
+        self.stdout.write(f"Ciclos procesados: {len(imported_cycles)}")
+        if imported_cycles:
+            self.stdout.write(f"Detalle de ciclos: {', '.join(imported_cycles)}")
         self.stdout.write(f"Indicadores entidad-ciclo detectados: {len(entity_indicator_seen)}")
         for name, count in counters.items():
+            self.stdout.write(f"{name}: {count}")
+        for name, count in deleted_counts.items():
             self.stdout.write(f"{name}: {count}")
 
     def bulk_upsert(self, collection, keys, documents):
@@ -362,6 +435,13 @@ class Command(BaseCommand):
             operations.append(UpdateOne(selector, {"$set": doc}, upsert=True))
         collection.bulk_write(operations, ordered=False)
 
+    def delete_cycle_bound_documents(self, db, cycles):
+        selector = {"ciclo": {"$in": list(cycles)}}
+        return {
+            "matricula_plantel_ciclo_eliminados": db.matricula_plantel_ciclo.delete_many(selector).deleted_count,
+            "indicadores_entidad_ciclo_eliminados": db.indicadores_entidad_ciclo.delete_many(selector).deleted_count,
+        }
+
     def ensure_indexes(self, db):
         db.catalog_entidades.create_index("clave", unique=True)
         db.catalog_municipios.create_index([("entidad_clave", 1), ("clave", 1)], unique=True)
@@ -371,6 +451,6 @@ class Command(BaseCommand):
         )
         db.catalog_opciones.create_index([("tipo", 1), ("clave", 1)], unique=True)
         db.planteles.create_index("plantel_cct", unique=True)
-        db.planteles.create_index("escuela_clave", unique=True, sparse=True)
+        db.planteles.create_index("escuela_clave", sparse=True)
         db.matricula_plantel_ciclo.create_index([("plantel_cct", 1), ("ciclo", 1)], unique=True)
         db.indicadores_entidad_ciclo.create_index([("entidad_clave", 1), ("ciclo", 1)], unique=True)

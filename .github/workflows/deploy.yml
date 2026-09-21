@@ -1,0 +1,42 @@
+name: Deploy educadata
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-educadata
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy en servidor (/tacopy/educadata)
+    runs-on: [self-hosted, educadata]
+    env:
+      APP_DIR: /tacopy/educadata
+      SERVICE: educadata
+      BRANCH: main
+
+    steps:
+      - name: Actualizar código
+        run: |
+          cd "$APP_DIR"
+          git fetch --prune origin
+          git checkout "$BRANCH"
+          git pull --ff-only origin "$BRANCH"
+          git log -1 --oneline
+
+      - name: Instalar dependencias
+        run: |
+          cd "$APP_DIR"
+          .venv/bin/pip install --upgrade pip
+          .venv/bin/pip install -r requirements.txt
+
+      # collectstatic y migrate NO se ejecutan aquí: se corren manualmente en el servidor.
+
+      - name: Reiniciar gunicorn
+        run: |
+          sudo /usr/bin/systemctl restart "$SERVICE"
+          sleep 3
+          sudo /usr/bin/systemctl is-active "$SERVICE"
