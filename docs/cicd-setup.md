@@ -2,7 +2,7 @@
 
 Flujo: push a `main` -> el runner en el servidor hace `git pull`, instala
 `requirements.txt` en `/tacopy/educadata/.venv` y reinicia el servicio `educadata`
-(gunicorn en 10.3.29.160:8700). `collectstatic` y `migrate` se corren a mano.
+(gunicorn en 10.3.29.160:8700). `migrate` se corre en local antes del push; los estáticos se manejan aparte (ver sección 4).
 
 Workflow: `.github/workflows/deploy.yml`
 
@@ -27,6 +27,7 @@ New self-hosted runner (Linux x64). Copiar el token (caduca en 1 hora).
   --work _work \
   --unattended
 ```
+
 
 Instalarlo como servicio para que arranque solo:
 
@@ -63,15 +64,16 @@ cd /tacopy/educadata && git pull --ff-only origin main
 El pull es `--ff-only`: si alguien editó archivos versionados directamente en el
 servidor, el deploy falla en vez de pisar cambios.
 
-## 4. Pasos manuales después de un deploy (cuando apliquen)
+## 4. Migraciones y estáticos
 
-```bash
-cd /tacopy/educadata
-set -a; source .env; set +a
-.venv/bin/python manage.py migrate
-.venv/bin/python manage.py collectstatic --noinput
-sudo systemctl restart educadata
-```
+El pipeline no corre `migrate` ni `collectstatic`:
+
+- `migrate` se corre en local antes de hacer push, para revisar errores ahí.
+  Los archivos de migración generados viajan en el commit; en el servidor solo se
+  aplican cuando haga falta, a mano:
+  `cd /tacopy/educadata && set -a; source .env; set +a; .venv/bin/python manage.py migrate`
+- Los estáticos se comparten entre varios proyectos del servidor y se gestionan
+  aparte; no se tocan en el deploy.
 
 ## Notas
 

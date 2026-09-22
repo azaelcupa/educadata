@@ -33,7 +33,7 @@ jobs:
           .venv/bin/pip install --upgrade pip
           .venv/bin/pip install -r requirements.txt
 
-      # collectstatic y migrate NO se ejecutan aquí: se corren manualmente en el servidor.
+      # Sin collectstatic (los estáticos son compartidos entre proyectos) ni migrate (se corre en local antes del push).
 
       - name: Reiniciar gunicorn
         run: |
