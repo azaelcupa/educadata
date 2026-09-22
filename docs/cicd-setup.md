@@ -1,7 +1,7 @@
 # CI/CD de educadata (GitHub Actions, runner self-hosted)
 
 Flujo: push a `main` -> el runner en el servidor hace `git pull`, instala
-`requirements.txt` en `/tacopy/educadata/.venv` y reinicia el servicio `educadata`
+`requirements.txt` en `/tacopy/educadata/.venv` y reinicia el servicio `gunicorn-educadata`
 (gunicorn en 10.3.29.160:8700). `migrate` se corre en local antes del push; los estáticos se manejan aparte (ver sección 4).
 
 Workflow: `.github/workflows/deploy.yml`
@@ -46,10 +46,10 @@ sudo visudo -f /etc/sudoers.d/educadata-deploy
 Contenido:
 
 ```
-azael.zarate ALL=(root) NOPASSWD: /usr/bin/systemctl restart educadata, /usr/bin/systemctl is-active educadata
+azael.zarate ALL=(root) NOPASSWD: /usr/bin/systemctl restart gunicorn-educadata, /usr/bin/systemctl is-active gunicorn-educadata
 ```
 
-(Confirmar la ruta con `which systemctl` y que el servicio se llame `educadata.service`;
+(Confirmar la ruta con `which systemctl` y que el servicio se llame `gunicorn-educadata.service`;
 si tiene otro nombre, cambiar `SERVICE` en el yml y esta línea.)
 
 ## 3. Que el repo del servidor pueda hacer pull

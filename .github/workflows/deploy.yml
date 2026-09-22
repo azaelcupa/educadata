@@ -15,7 +15,7 @@ jobs:
     runs-on: [self-hosted, educadata]
     env:
       APP_DIR: /tacopy/educadata
-      SERVICE: educadata
+      SERVICE: gunicorn-educadata
       BRANCH: main
 
     steps:
