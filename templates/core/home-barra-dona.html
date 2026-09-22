@@ -2749,8 +2749,9 @@
             touchZoom: false,
             tap: false,
         });
-        L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", {
-            attribution: "&copy; OpenStreetMap, &copy; CartoDB",
+        L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}", {
+            attribution: "Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ",
+            maxZoom: 16,
         }).addTo(map);
         map.fitBounds(mexicoFocusBounds, { padding: isMobileLayout() ? [18, 6] : [6, 6] });
         map.setMaxBounds(mexicoBounds);
